@@ -1,1 +1,36 @@
+# Environment Variables & Secrets (CRITICAL - NEVER COMMIT)
 .env
+.env.*
+!.env.example
+
+# Python Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Database & SQLite files (if local DB copies are created)
+*.sqlite3
+*.db
+
+# IDEs & Code Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Generated Files
+Thumbs.db
+.DS_Store
+
+# Logs and package builds
+*.log
+dist/
+build/
+*.egg-info/
