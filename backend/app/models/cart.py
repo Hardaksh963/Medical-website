@@ -1,7 +1,13 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer
+from sqlalchemy import (
+    DateTime,
+    ForeignKey,
+    Integer,
+    UniqueConstraint
+)
+
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -27,11 +33,13 @@ class Cart(Base):
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
+        nullable=False,
         default=datetime.utcnow
     )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
+        nullable=False,
         default=datetime.utcnow,
         onupdate=datetime.utcnow
     )
@@ -41,6 +49,14 @@ class CartItem(Base):
 
     __tablename__ = "cart_items"
 
+    __table_args__ = (
+        UniqueConstraint(
+            "cart_id",
+            "product_id",
+            name="uq_cart_product"
+        ),
+    )
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -49,7 +65,7 @@ class CartItem(Base):
 
     cart_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("carts.id"),
+        ForeignKey("carts.id", ondelete="CASCADE"),
         nullable=False
     )
 

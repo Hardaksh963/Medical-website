@@ -1,8 +1,10 @@
 import uuid
 from decimal import Decimal
+from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
+    DateTime,
     Enum,
     ForeignKey,
     Integer,
@@ -62,8 +64,7 @@ class Product(Base):
             "DIAGNOSTIC_DEVICE",
             "HOME_HEALTHCARE_DEVICE",
             "MOBILITY_SUPPORT",
-            name="product_type",
-            create_type=False
+            name="product_type"
         ),
         nullable=False
     )
@@ -96,6 +97,7 @@ class Product(Base):
 
     is_disposable: Mapped[bool] = mapped_column(
         Boolean,
+        nullable=False,
         default=False
     )
 
@@ -109,11 +111,13 @@ class Product(Base):
 
     expiry_required: Mapped[bool] = mapped_column(
         Boolean,
+        nullable=False,
         default=False
     )
 
     batch_tracking_required: Mapped[bool] = mapped_column(
         Boolean,
+        nullable=False,
         default=False
     )
 
@@ -123,6 +127,7 @@ class Product(Base):
 
     reorder_level: Mapped[int] = mapped_column(
         Integer,
+        nullable=False,
         default=5
     )
 
@@ -135,8 +140,21 @@ class Product(Base):
             "ACTIVE",
             "INACTIVE",
             "DRAFT",
-            name="product_status",
-            create_type=False
+            name="product_status"
         ),
-        nullable=False
+        nullable=False,
+        default="ACTIVE"
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
     )

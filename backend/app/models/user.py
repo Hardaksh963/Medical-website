@@ -34,7 +34,7 @@ class User(Base):
     )
 
     password_hash: Mapped[str] = mapped_column(
-        String,
+        String(255),
         nullable=False
     )
 
@@ -42,8 +42,7 @@ class User(Base):
         Enum(
             "CUSTOMER",
             "ADMIN",
-            name="user_role",
-            create_type=False
+            name="user_role"
         ),
         nullable=False,
         default="CUSTOMER"
@@ -51,6 +50,6 @@ class User(Base):
 
     is_active: Mapped[bool] = mapped_column(
         Boolean,
-        default=True,
-        nullable=False
+        nullable=False,
+        default=True
     )

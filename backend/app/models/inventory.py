@@ -31,9 +31,10 @@ class InventoryMovement(Base):
         nullable=False
     )
 
-    batch_id: Mapped[uuid.UUID | None] = mapped_column(
+    batch_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("product_batches.id")
+        ForeignKey("product_batches.id"),
+        nullable=False
     )
 
     quantity: Mapped[int] = mapped_column(
@@ -49,8 +50,7 @@ class InventoryMovement(Base):
             "RETURN",
             "DAMAGED",
             "EXPIRED",
-            name="inventory_movement_type",
-            create_type=False
+            name="inventory_movement_type"
         ),
         nullable=False
     )
@@ -61,6 +61,6 @@ class InventoryMovement(Base):
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=datetime.utcnow,
-        nullable=False
+        nullable=False,
+        default=datetime.utcnow
     )
