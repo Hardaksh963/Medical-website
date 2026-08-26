@@ -129,17 +129,21 @@ def seed_categories(session):
         ("Mobility & Support", "mobility-support"),
     ]
 
+    # Create main categories
     for name, slug in main_categories:
-        categories[name] = get_or_create(
+        category = get_or_create(
             session,
             Category,
             slug=slug,
         )
 
-        categories[name].name = name
-        categories[name].is_active = True
+        category.name = name
+        category.is_active = True
 
-    # Subcategories
+        # IMPORTANT: store in dictionary
+        categories[name] = category
+
+    # Create subcategories
     subcategories = [
         (
             "Gloves & Protective",
@@ -179,6 +183,7 @@ def seed_categories(session):
     ]
 
     for name, slug, parent_name in subcategories:
+
         category = get_or_create(
             session,
             Category,
@@ -188,6 +193,11 @@ def seed_categories(session):
         category.name = name
         category.parent_id = categories[parent_name].id
         category.is_active = True
+
+        # IMPORTANT: store subcategory too
+        categories[name] = category
+
+    session.flush()
 
     print("Categories created.")
 
