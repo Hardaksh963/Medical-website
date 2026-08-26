@@ -20,6 +20,9 @@ def get_or_create(session, model, **filters):
     """
     Return an existing record if found.
     Otherwise create and return a new one.
+
+    Does NOT flush immediately because some models require
+    additional fields to be populated before INSERT.
     """
     statement = select(model).filter_by(**filters)
     result = session.execute(statement).scalar_one_or_none()
@@ -29,7 +32,6 @@ def get_or_create(session, model, **filters):
 
     obj = model(**filters)
     session.add(obj)
-    session.flush()
 
     return obj
 
@@ -37,17 +39,38 @@ def get_or_create(session, model, **filters):
 def seed_users(session):
     print("Creating users...")
 
-    admin = get_or_create(
-        session,
-        User,
-        email="admin@medicalstore.com",
-    )
+    # -------------------------
+    # Admin
+    # -------------------------
 
-    admin.name = "Medical Store Admin"
-    admin.phone = "9876543210"
-    admin.password_hash = get_password_hash("Admin@12345")
-    admin.role = "ADMIN"
-    admin.is_active = True
+    admin = session.execute(
+        select(User).where(
+            User.email == "admin@medicalstore.com"
+        )
+    ).scalar_one_or_none()
+
+    if admin is None:
+        admin = User(
+            name="Medical Store Admin",
+            email="admin@medicalstore.com",
+            phone="9876543210",
+            password_hash=get_password_hash("Admin@12345"),
+            role="ADMIN",
+            is_active=True,
+        )
+
+        session.add(admin)
+
+    else:
+        admin.name = "Medical Store Admin"
+        admin.phone = "9876543210"
+        admin.password_hash = get_password_hash("Admin@12345")
+        admin.role = "ADMIN"
+        admin.is_active = True
+
+    # -------------------------
+    # Customers
+    # -------------------------
 
     customers = []
 
@@ -58,19 +81,35 @@ def seed_users(session):
     ]
 
     for name, email, phone in customer_data:
-        customer = get_or_create(
-            session,
-            User,
-            email=email,
-        )
 
-        customer.name = name
-        customer.phone = phone
-        customer.password_hash = get_password_hash("Customer@123")
-        customer.role = "CUSTOMER"
-        customer.is_active = True
+        customer = session.execute(
+            select(User).where(
+                User.email == email
+            )
+        ).scalar_one_or_none()
+
+        if customer is None:
+            customer = User(
+                name=name,
+                email=email,
+                phone=phone,
+                password_hash=get_password_hash("Customer@123"),
+                role="CUSTOMER",
+                is_active=True,
+            )
+
+            session.add(customer)
+
+        else:
+            customer.name = name
+            customer.phone = phone
+            customer.password_hash = get_password_hash("Customer@123")
+            customer.role = "CUSTOMER"
+            customer.is_active = True
 
         customers.append(customer)
+
+    session.flush()
 
     print("Users created.")
 
