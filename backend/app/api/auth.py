@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
+
 from app.api.dependencies import get_current_user
 from app.core.database import get_db
 from app.core.security import (
@@ -25,23 +27,21 @@ router = APIRouter(
 
 @router.post(
     "/register",
-    response_model=UserResponse
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
 )
 def register(
     data: RegisterRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-
-    existing_user = (
-        db.query(User)
-        .filter(User.email == data.email)
-        .first()
-    )
+    existing_user = db.execute(
+        select(User).where(User.email == data.email)
+    ).scalar_one_or_none()
 
     if existing_user:
         raise HTTPException(
-            status_code=409,
-            detail="Email already registered"
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered",
         )
 
     user = User(
@@ -50,7 +50,7 @@ def register(
         phone=data.phone,
         password_hash=hash_password(data.password),
         role="CUSTOMER",
-        is_active=True
+        is_active=True,
     )
 
     db.add(user)
@@ -62,49 +62,48 @@ def register(
 
 @router.post(
     "/login",
-    response_model=TokenResponse
+    response_model=TokenResponse,
 )
 def login(
     data: LoginRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-
-    user = (
-        db.query(User)
-        .filter(User.email == data.email)
-        .first()
-    )
+    user = db.execute(
+        select(User).where(User.email == data.email)
+    ).scalar_one_or_none()
 
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password"
+            detail="Invalid email or password",
         )
 
     if not verify_password(
         data.password,
-        user.password_hash
+        user.password_hash,
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password"
+            detail="Invalid email or password",
         )
 
     if not user.is_active:
         raise HTTPException(
-            status_code=403,
-            detail="Account is disabled"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive",
         )
 
-    token = create_access_token(
-        str(user.id),
-        user.role
+    access_token = create_access_token(
+        {
+            "sub": str(user.id),
+            "role": user.role,
+        }
     )
 
-    return {
-        "access_token": token,
-        "token_type": "bearer"
-    }
+    return TokenResponse(
+        access_token=access_token,
+        user=user,
+    )
 
 @router.get(
     "/me",

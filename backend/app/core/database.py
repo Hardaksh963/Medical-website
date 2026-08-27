@@ -1,7 +1,7 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -23,6 +23,16 @@ def get_db():
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+class Base(DeclarativeBase):
+    pass
+
+def get_db():
+    db = SessionLocal()
+
+    try:
+        yield db
+    finally:
+        db.close()
 
 class Settings(BaseSettings):
     DATABASE_URL: str

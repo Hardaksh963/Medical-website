@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 
 
 class RegisterRequest(BaseModel):
@@ -22,20 +22,18 @@ class LoginRequest(BaseModel):
 
 
 class UserResponse(BaseModel):
-
+    model_config = ConfigDict(from_attributes=True)
     id: UUID
 
     name: str
 
     email: EmailStr
 
+    phone: str | None
+
     role: str
 
     is_active: bool
-
-    model_config = {
-        "from_attributes": True
-    }
 
 
 class TokenResponse(BaseModel):
@@ -43,3 +41,5 @@ class TokenResponse(BaseModel):
     access_token: str
 
     token_type: str = "bearer"
+
+    user: UserResponse
