@@ -1,11 +1,13 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.cart import router as cart_router
 from app.api.orders import router as orders_router
 
 from app.api.auth import router as auth_router
 from app.api.products import router as products_router
-
+from app.models.user import User
+from app.api.dependencies import get_current_user
+from app.api.admin_dependencies import get_current_admin
 
 app = FastAPI(
     title="Medical Store API",
@@ -44,4 +46,25 @@ def health():
 
     return {
         "status": "healthy"
+    }
+
+@app.get("/test/user")
+def test_user(
+    current_user: User = Depends(get_current_user),
+):
+    return {
+        "message": "Authenticated successfully",
+        "user": current_user.email,
+        "role": current_user.role,
+    }
+
+
+@app.get("/test/admin")
+def test_admin(
+    current_user: User = Depends(get_current_admin),
+):
+    return {
+        "message": "Admin access granted",
+        "user": current_user.email,
+        "role": current_user.role,
     }
