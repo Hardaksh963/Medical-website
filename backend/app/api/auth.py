@@ -6,7 +6,7 @@ from app.api.dependencies import get_current_user
 from app.core.database import get_db
 from app.core.security import (
     create_access_token,
-    hash_password,
+    get_password_hash as hash_password,
     verify_password
 )
 
