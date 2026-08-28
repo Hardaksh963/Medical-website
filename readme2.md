@@ -1731,6 +1731,66 @@ The next sequence I recommend is:
 10. Start FastAPI backend
 ```
 
-And one thing I'd change from the earlier plan: **don't manually create the 15 products directly in PostgreSQL as your final workflow.** Use seed data only to test the database. The real system should eventually let the admin create these products through the dynamic **Add Product** form we designed above.
+PHASE 1  ✅ Database foundation
+         PostgreSQL + SQLAlchemy + Alembic
 
-The strongest next step is therefore **Step 1–8: create the complete PostgreSQL database + seed it with the 15 products and test the relationships**. After that, we can design the **FastAPI backend/API architecture** around a database we know actually works.
+PHASE 2  → Database seed + relationship testing
+         Users
+         Categories
+         Brands
+         Products
+         Batches
+         Inventory
+         Cart
+         Orders
+
+PHASE 3  → Authentication
+         Register
+         Login
+         Password hashing
+         JWT
+         Current user
+         Customer/Admin authorization
+
+PHASE 4  → Product APIs
+         List products
+         Product detail
+         Search
+         Category filtering
+         Admin CRUD
+
+PHASE 5  → Inventory
+         Stock in
+         Stock out
+         Batch tracking
+         Expiry
+         Reorder levels
+
+PHASE 6  → Cart + checkout
+         Add/remove cart items
+         Quantity updates
+         Checkout
+         Transaction-safe stock deduction
+         Order creation
+
+PHASE 7  → Admin APIs
+         Products
+         Stock
+         Orders
+         Statistics
+         User management
+
+PHASE 8  → Missing business features
+         Reviews
+         Addresses
+         Complaints
+         Payments
+         Wishlist
+         Notifications
+         Product images
+
+PHASE 9  → Frontend
+         Customer UI
+         Admin dashboard
+
+PHASE 10 → Integration + security + testing
