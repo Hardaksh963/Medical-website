@@ -1,13 +1,15 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.cart import router as cart_router
-from app.api.orders import router as orders_router
 
 from app.api.auth import router as auth_router
 from app.api.products import router as products_router
-from app.models.user import User
+from app.api.cart import router as cart_router
+from app.api.orders import router as orders_router
+from app.api.inventory import router as inventory_router
+
 from app.api.dependencies import get_current_user
 from app.api.admin_dependencies import get_current_admin
+from app.models.user import User
 
 app = FastAPI(
     title="Medical Store API",
@@ -32,6 +34,7 @@ app.include_router(auth_router)
 app.include_router(products_router)
 app.include_router(cart_router)
 app.include_router(orders_router)
+app.include_router(inventory_router)
 
 @app.get("/")
 def root():
