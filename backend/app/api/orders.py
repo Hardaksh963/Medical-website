@@ -46,34 +46,6 @@ def get_my_orders(
             ) 
         return orders 
 
-@router.get("/{order_id}") 
-def get_my_order( 
-    order_id: str, 
-    current_user: User = Depends(get_current_user), 
-    db: Session = Depends(get_db) 
-    ): 
-    order = ( 
-        db.query(Order) 
-        .filter( 
-            Order.id == order_id, 
-            Order.user_id == current_user.id 
-            ) 
-            .first() 
-            ) 
-    if not order: 
-        raise HTTPException( status_code=404, detail="Order not found" ) 
-    items = ( db.query(OrderItem) 
-            .filter(OrderItem.order_id == order.id) 
-            .all() ) 
-    return { "id": order.id, 
-            "order_number": order.order_number, 
-            "status": order.status, 
-            "subtotal": order.subtotal, 
-            "shipping_cost": order.shipping_cost, 
-            "total_amount": order.total_amount, 
-            "created_at": order.created_at, 
-            "items": items }
-
 @router.get("/admin")
 def get_all_orders(
     current_admin: User = Depends(get_current_admin),
@@ -176,3 +148,31 @@ def update_order_status(
         "order_number": order.order_number,
         "status": order.status
     }
+
+@router.get("/{order_id}") 
+def get_my_order( 
+    order_id: str, 
+    current_user: User = Depends(get_current_user), 
+    db: Session = Depends(get_db) 
+    ): 
+    order = ( 
+        db.query(Order) 
+        .filter( 
+            Order.id == order_id, 
+            Order.user_id == current_user.id 
+            ) 
+            .first() 
+            ) 
+    if not order: 
+        raise HTTPException( status_code=404, detail="Order not found" ) 
+    items = ( db.query(OrderItem) 
+            .filter(OrderItem.order_id == order.id) 
+            .all() ) 
+    return { "id": order.id, 
+            "order_number": order.order_number, 
+            "status": order.status, 
+            "subtotal": order.subtotal, 
+            "shipping_cost": order.shipping_cost, 
+            "total_amount": order.total_amount, 
+            "created_at": order.created_at, 
+            "items": items }

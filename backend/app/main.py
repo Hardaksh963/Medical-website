@@ -10,7 +10,7 @@ from app.api.inventory import router as inventory_router
 from app.api.dependencies import get_current_user
 from app.api.admin_dependencies import get_current_admin
 from app.models.user import User
-
+from app.api.complaints import router as complaints_router
 app = FastAPI(
     title="Medical Store API",
     description="Backend API for a medical products e-commerce platform",
@@ -35,6 +35,7 @@ app.include_router(products_router)
 app.include_router(cart_router)
 app.include_router(orders_router)
 app.include_router(inventory_router)
+app.include_router(complaints_router)
 
 @app.get("/")
 def root():
