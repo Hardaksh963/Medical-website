@@ -1,45 +1,43 @@
-import uuid
 from datetime import datetime
+from uuid import UUID, uuid4
 
 from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
     Integer,
-    String
+    String,
 )
-
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 
 
 class InventoryMovement(Base):
-
     __tablename__ = "inventory_movements"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
         primary_key=True,
-        default=uuid.uuid4
+        default=uuid4,
     )
 
-    product_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+    product_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
         ForeignKey("products.id"),
-        nullable=False
+        nullable=False,
     )
 
-    batch_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+    batch_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
         ForeignKey("product_batches.id"),
-        nullable=False
+        nullable=False,
     )
 
     quantity: Mapped[int] = mapped_column(
         Integer,
-        nullable=False
+        nullable=False,
     )
 
     movement_type: Mapped[str] = mapped_column(
@@ -50,17 +48,18 @@ class InventoryMovement(Base):
             "RETURN",
             "DAMAGED",
             "EXPIRED",
-            name="inventory_movement_type"
+            name="inventory_movement_type",
         ),
-        nullable=False
+        nullable=False,
     )
 
     reason: Mapped[str | None] = mapped_column(
-        String(255)
+        String(255),
+        nullable=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=datetime.utcnow
+        default=datetime.utcnow,
     )
