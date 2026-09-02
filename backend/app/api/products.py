@@ -261,3 +261,44 @@ def deactivate_product(
     db.refresh(product)
 
     return product
+
+@router.patch(
+    "/admin/{product_id}/status",
+    response_model=ProductResponse,
+)
+def update_product_status(
+    product_id: str,
+    product_status: str,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    product = (
+        db.query(Product)
+        .filter(Product.id == product_id)
+        .first()
+    )
+
+    if not product:
+        raise HTTPException(
+            status_code=404,
+            detail="Product not found",
+        )
+
+    allowed_statuses = {
+        "ACTIVE",
+        "INACTIVE",
+        "DRAFT",
+    }
+
+    if product_status not in allowed_statuses:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid product status",
+        )
+
+    product.status = product_status
+
+    db.commit()
+    db.refresh(product)
+
+    return product

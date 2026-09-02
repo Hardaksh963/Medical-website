@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.admin_dependencies import get_current_admin
@@ -50,6 +50,58 @@ def create_inventory_batch(
         expiry_date=data.expiry_date,
     )
 
+@router.get(
+    "/admin/low-stock",
+    response_model=list[dict],
+)
+def get_low_stock_products(
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    query = (
+        select(
+            Product.id.label("product_id"),
+            Product.name.label("product_name"),
+            Product.reorder_level.label("reorder_level"),
+            func.coalesce(
+                func.sum(ProductBatch.quantity),
+                0
+            ).label("current_stock"),
+        )
+        .outerjoin(
+            ProductBatch,
+            ProductBatch.product_id == Product.id,
+        )
+        .where(
+            Product.status == "ACTIVE"
+        )
+        .group_by(
+            Product.id,
+            Product.name,
+            Product.reorder_level,
+        )
+        .having(
+            func.coalesce(
+                func.sum(ProductBatch.quantity),
+                0
+            ) <= Product.reorder_level
+        )
+        .order_by(
+            Product.name.asc()
+        )
+    )
+
+    results = db.execute(query).all()
+
+    return [
+        {
+            "product_id": row.product_id,
+            "product_name": row.product_name,
+            "current_stock": row.current_stock,
+            "reorder_level": row.reorder_level,
+        }
+        for row in results
+    ]
 
 @router.get(
     "/admin/{product_id}",
