@@ -1,3 +1,4 @@
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -5,7 +6,10 @@ from app.api.dependencies import get_current_user
 from app.core.database import get_db
 from app.models.user import User
 from app.models.order import Order, OrderItem
-from app.services.order_service import create_order
+from app.services.order_service import (
+    create_order,
+    cancel_order,
+)
 from app.api.admin_dependencies import get_current_admin
 from app.schemas.order import OrderStatusUpdate
 
@@ -149,6 +153,25 @@ def update_order_status(
         "status": order.status
     }
 
+@router.patch("/{order_id}/cancel")
+def cancel_customer_order(
+    order_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    order = cancel_order(
+        db=db,
+        user_id=current_user.id,
+        order_id=order_id,
+    )
+
+    return {
+        "message": "Order cancelled successfully",
+        "order_id": order.id,
+        "order_number": order.order_number,
+        "status": order.status,
+    }
+
 @router.get("/{order_id}") 
 def get_my_order( 
     order_id: str, 
@@ -176,3 +199,4 @@ def get_my_order(
             "total_amount": order.total_amount, 
             "created_at": order.created_at, 
             "items": items }
+

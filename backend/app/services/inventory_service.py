@@ -159,3 +159,41 @@ def adjust_inventory(
     db.refresh(batch)
 
     return batch
+
+def restore_order_inventory(
+    db: Session,
+    order_id: UUID,
+):
+    movements = (
+        db.query(InventoryMovement)
+        .filter(
+            InventoryMovement.order_id == order_id,
+            InventoryMovement.movement_type == "STOCK_OUT",
+        )
+        .with_for_update()
+        .all()
+    )
+
+    if not movements:
+        return
+
+    for movement in movements:
+
+        batch = (
+            db.query(ProductBatch)
+            .filter(ProductBatch.id == movement.batch_id)
+            .with_for_update()
+            .first()
+        )
+
+        if not batch:
+            raise HTTPException(
+                status_code=404,
+                detail="Inventory batch not found"
+            )
+
+        batch.quantity += movement.quantity
+
+        # Prevent restoring the same movement twice
+        movement.movement_type = "RETURN"
+        movement.reason = "Order cancelled - stock restored"

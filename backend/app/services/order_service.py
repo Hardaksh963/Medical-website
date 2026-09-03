@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 from decimal import Decimal
 
 from fastapi import HTTPException
@@ -9,12 +10,16 @@ from app.models.inventory import InventoryMovement
 from app.models.order import Order, OrderItem
 from app.models.product import Product
 from app.models.batch import ProductBatch
+from app.models.payment import Payment
 
 
 def create_order(
     db: Session,
     user_id: uuid.UUID
 ):
+    # ---------------------------------------------------------
+    # 1. Get user's cart
+    # ---------------------------------------------------------
     cart = (
         db.query(Cart)
         .filter(Cart.user_id == user_id)
@@ -43,7 +48,9 @@ def create_order(
     order_items = []
 
     try:
-
+        # -----------------------------------------------------
+        # 2. Validate products and inventory
+        # -----------------------------------------------------
         for cart_item in items:
 
             if cart_item.quantity <= 0:
@@ -52,6 +59,7 @@ def create_order(
                     detail="Invalid cart quantity"
                 )
 
+            # Lock product row
             product = (
                 db.query(Product)
                 .filter(
@@ -68,15 +76,26 @@ def create_order(
                     detail="Product no longer available"
                 )
 
-            # Get active batches with available stock.
-            # Lock them so two customers cannot consume
-            # the same stock simultaneously.
+            # -------------------------------------------------
+            # Get valid batches
+            #
+            # - Active only
+            # - Quantity > 0
+            # - Not expired
+            # - Earliest expiry first
+            # - No-expiry batches last
+            # - Lock rows to prevent overselling
+            # -------------------------------------------------
             batches = (
                 db.query(ProductBatch)
                 .filter(
                     ProductBatch.product_id == product.id,
                     ProductBatch.is_active == True,
-                    ProductBatch.quantity > 0
+                    ProductBatch.quantity > 0,
+                    (
+                        ProductBatch.expiry_date.is_(None)
+                        | (ProductBatch.expiry_date >= date.today())
+                    )
                 )
                 .order_by(
                     ProductBatch.expiry_date.asc().nulls_last(),
@@ -91,6 +110,9 @@ def create_order(
                 for batch in batches
             )
 
+            # -------------------------------------------------
+            # Insufficient stock
+            # -------------------------------------------------
             if available_stock < cart_item.quantity:
                 raise HTTPException(
                     status_code=400,
@@ -102,11 +124,10 @@ def create_order(
                     )
                 )
 
+            # Always use current selling price
             price = product.selling_price
 
-            item_total = (
-                price * cart_item.quantity
-            )
+            item_total = price * cart_item.quantity
 
             subtotal += item_total
 
@@ -118,10 +139,15 @@ def create_order(
                 "batches": batches
             })
 
+        # -----------------------------------------------------
+        # 3. Calculate order total
+        # -----------------------------------------------------
         shipping = Decimal("0")
         total = subtotal + shipping
 
-        # Create order
+        # -----------------------------------------------------
+        # 4. Create order
+        # -----------------------------------------------------
         order = Order(
             user_id=user_id,
             order_number=f"ORD-{uuid.uuid4().hex[:10].upper()}",
@@ -134,13 +160,14 @@ def create_order(
         db.add(order)
         db.flush()
 
-        # Process inventory + order items
+        # -----------------------------------------------------
+        # 5. Create order items + deduct inventory
+        # -----------------------------------------------------
         for item in order_items:
 
             product = item["product"]
             remaining_quantity = item["quantity"]
 
-            # Create order item
             order_item = OrderItem(
                 order_id=order.id,
                 product_id=product.id,
@@ -151,7 +178,7 @@ def create_order(
 
             db.add(order_item)
 
-            # Deduct stock using batches
+            # FIFO / earliest-expiry-first deduction
             for batch in item["batches"]:
 
                 if remaining_quantity <= 0:
@@ -167,6 +194,7 @@ def create_order(
                 movement = InventoryMovement(
                     product_id=product.id,
                     batch_id=batch.id,
+                    order_id=order.id,
                     quantity=deducted,
                     movement_type="STOCK_OUT",
                     reason="Stock sold"
@@ -176,15 +204,137 @@ def create_order(
 
                 remaining_quantity -= deducted
 
-        # Clear cart
+            # Defensive check
+            if remaining_quantity > 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Insufficient stock for {product.name}"
+                )
+
+        # -----------------------------------------------------
+        # 6. Clear cart
+        # -----------------------------------------------------
         db.query(CartItem).filter(
             CartItem.cart_id == cart.id
         ).delete(
             synchronize_session=False
         )
 
+        # -----------------------------------------------------
+        # 7. Commit entire transaction
+        # -----------------------------------------------------
         db.commit()
 
+        db.refresh(order)
+
+        return order
+
+    except HTTPException:
+        # Roll back EVERYTHING:
+        # order + order items + inventory changes
+        db.rollback()
+        raise
+
+    except Exception:
+        # Roll back unexpected failures too
+        db.rollback()
+        raise
+
+def cancel_order(
+    db: Session,
+    user_id: uuid.UUID,
+    order_id: uuid.UUID,
+):
+    # ---------------------------------------------------------
+    # Find customer's order
+    # ---------------------------------------------------------
+    order = (
+        db.query(Order)
+        .filter(
+            Order.id == order_id,
+            Order.user_id == user_id,
+        )
+        .with_for_update()
+        .first()
+    )
+
+    if not order:
+        raise HTTPException(
+            status_code=404,
+            detail="Order not found"
+        )
+
+    # ---------------------------------------------------------
+    # Check whether order can be cancelled
+    # ---------------------------------------------------------
+    if order.status == "CANCELLED":
+        raise HTTPException(
+            status_code=400,
+            detail="Order is already cancelled"
+        )
+
+    if order.status in {"SHIPPED", "DELIVERED", "RETURNED"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Order cannot be cancelled at this stage"
+        )
+
+    try:
+        # -----------------------------------------------------
+        # Restore inventory from STOCK_OUT movements
+        # -----------------------------------------------------
+        movements = (
+            db.query(InventoryMovement)
+            .filter(
+                InventoryMovement.order_id == order.id,
+                InventoryMovement.movement_type == "STOCK_OUT",
+            )
+            .with_for_update()
+            .all()
+        )
+
+        for movement in movements:
+
+            batch = (
+                db.query(ProductBatch)
+                .filter(
+                    ProductBatch.id == movement.batch_id
+                )
+                .with_for_update()
+                .first()
+            )
+
+            if not batch:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Inventory batch not found"
+                )
+
+            batch.quantity += movement.quantity
+
+            # Mark original movement as returned
+            movement.movement_type = "RETURN"
+            movement.reason = "Order cancelled - stock restored"
+
+        # -----------------------------------------------------
+        # Cancel order
+        # -----------------------------------------------------
+        order.status = "CANCELLED"
+
+        # -----------------------------------------------------
+        # If payment exists, update it
+        # -----------------------------------------------------
+        payment = (
+            db.query(Payment)
+            .filter(Payment.order_id == order.id)
+            .with_for_update()
+            .first()
+        )
+
+        if payment and payment.status == "PENDING":
+            payment.status = "FAILED"
+
+        db.commit()
         db.refresh(order)
 
         return order
