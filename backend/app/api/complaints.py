@@ -7,6 +7,7 @@ from app.api.admin_dependencies import get_current_admin
 
 from app.models.user import User
 from app.models.complaint import Complaint
+from app.models.order import Order
 
 from app.schemas.complaint import (
     ComplaintCreate,
@@ -31,7 +32,23 @@ def create_complaint(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    if data.order_id is not None:
 
+        order = (
+        db.query(Order)
+        .filter(
+            Order.id == data.order_id,
+            Order.user_id == current_user.id
+        )
+        .first()
+    )
+
+        if not order:
+            raise HTTPException(
+            status_code=404,
+            detail="Order not found"
+        )
+    
     complaint = Complaint(
         user_id=current_user.id,
         order_id=data.order_id,
@@ -130,6 +147,29 @@ def update_complaint(
 
     db.commit()
     db.refresh(complaint)
+
+    return complaint
+
+@router.get(
+    "/admin/{complaint_id}",
+    response_model=ComplaintResponse
+)
+def get_admin_complaint(
+    complaint_id: str,
+    current_admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    complaint = (
+        db.query(Complaint)
+        .filter(Complaint.id == complaint_id)
+        .first()
+    )
+
+    if not complaint:
+        raise HTTPException(
+            status_code=404,
+            detail="Complaint not found"
+        )
 
     return complaint
 
