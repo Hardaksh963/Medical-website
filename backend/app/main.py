@@ -13,6 +13,7 @@ from app.models.user import User
 from app.api.complaints import router as complaints_router
 from app.api.admin_dashboard import router as admin_dashboard_router
 from app.api.payments import router as payments_router
+from app.api.reviews import router as reviews_router
 
 app = FastAPI(
     title="Medical Store API",
@@ -41,6 +42,7 @@ app.include_router(inventory_router)
 app.include_router(complaints_router)
 app.include_router(admin_dashboard_router)
 app.include_router(payments_router)
+app.include_router(reviews_router)
 
 @app.get("/")
 def root():
