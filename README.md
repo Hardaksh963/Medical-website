@@ -1836,9 +1836,9 @@ I would do it in this exact order:
 ✅ Order management
 ✅ Complaints
 ✅ Admin dashboard
+✅ Payment system
+✅ Addresses
 
-➡️ Payment system
-➡️ Addresses
 ➡️ Product reviews & ratings
 ➡️ Wishlist
 ➡️ Notifications
