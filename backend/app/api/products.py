@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from app.api.admin_dependencies import get_current_admin
 from app.core.database import get_db
@@ -11,6 +12,8 @@ from app.schemas.product import (
     ProductResponse,
     ProductUpdate,
 )
+from app.schemas.product import ProductDetailResponse
+from app.services.product_service import get_product_details
 
 
 router = APIRouter(
@@ -84,6 +87,46 @@ def get_products(
         .all()
     )
 
+@router.get(
+    "/{product_id}/details",
+    response_model=ProductDetailResponse
+)
+def get_product_details_endpoint(
+    product_id: UUID,
+    db: Session = Depends(get_db)
+):
+
+    result = get_product_details(
+        db=db,
+        product_id=product_id
+    )
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="Product not found"
+        )
+
+    product = result["product"]
+
+    return {
+        **{
+            column.name: getattr(product, column.name)
+            for column in product.__table__.columns
+        },
+
+        "images": result["images"],
+
+        "rating": {
+            "average": result["average_rating"],
+            "count": result["review_count"]
+        },
+
+        "inventory": {
+            "available": result["stock"] > 0,
+            "quantity": result["stock"]
+        }
+    }
 
 @router.get(
     "/{product_id}",
