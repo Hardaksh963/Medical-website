@@ -7,6 +7,8 @@ from app.models.product import Product
 from app.models.product_image import ProductImage
 from app.models.review import Review
 from app.models.batch import ProductBatch
+from app.models.category import Category
+from app.models.brand import Brand
 
 
 def get_product_details(
@@ -14,6 +16,9 @@ def get_product_details(
     product_id: UUID
 ):
 
+    # ---------------------------------------------------------
+    # Product
+    # ---------------------------------------------------------
     product = (
         db.query(Product)
         .filter(
@@ -26,6 +31,36 @@ def get_product_details(
     if not product:
         return None
 
+    # ---------------------------------------------------------
+    # Category
+    # ---------------------------------------------------------
+    category = (
+        db.query(Category)
+        .filter(
+            Category.id == product.category_id,
+            Category.is_active.is_(True)
+        )
+        .first()
+    )
+
+    # ---------------------------------------------------------
+    # Brand
+    # ---------------------------------------------------------
+    brand = None
+
+    if product.brand_id:
+        brand = (
+            db.query(Brand)
+            .filter(
+                Brand.id == product.brand_id,
+                Brand.is_active.is_(True)
+            )
+            .first()
+        )
+
+    # ---------------------------------------------------------
+    # Product images
+    # ---------------------------------------------------------
     images = (
         db.query(ProductImage)
         .filter(
@@ -38,6 +73,9 @@ def get_product_details(
         .all()
     )
 
+    # ---------------------------------------------------------
+    # Ratings
+    # ---------------------------------------------------------
     rating_data = (
         db.query(
             func.coalesce(
@@ -48,7 +86,6 @@ def get_product_details(
         )
         .filter(
             Review.product_id == product_id,
-            Review.is_approved.is_(True)
         )
         .first()
     )
@@ -56,6 +93,9 @@ def get_product_details(
     average_rating = float(rating_data[0] or 0)
     review_count = int(rating_data[1] or 0)
 
+    # ---------------------------------------------------------
+    # Inventory
+    # ---------------------------------------------------------
     total_stock = (
         db.query(
             func.coalesce(
@@ -72,8 +112,13 @@ def get_product_details(
 
     total_stock = int(total_stock or 0)
 
+    # ---------------------------------------------------------
+    # Return all product-page information
+    # ---------------------------------------------------------
     return {
         "product": product,
+        "category": category,
+        "brand": brand,
         "images": images,
         "average_rating": round(average_rating, 2),
         "review_count": review_count,

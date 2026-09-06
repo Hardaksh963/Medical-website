@@ -115,6 +115,9 @@ def get_product_details_endpoint(
             for column in product.__table__.columns
         },
 
+        "category": result["category"],
+        "brand": result["brand"],
+
         "images": result["images"],
 
         "rating": {

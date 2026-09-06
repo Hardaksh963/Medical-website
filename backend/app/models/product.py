@@ -13,9 +13,8 @@ from sqlalchemy import (
     Text
 )
 
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
-from pydantic import BaseModel, ConfigDict
 
 from app.core.database import Base
 
@@ -25,7 +24,7 @@ class Product(Base):
     __tablename__ = "products"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        PG_UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4
     )
@@ -48,13 +47,13 @@ class Product(Base):
     )
 
     category_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        PG_UUID(as_uuid=True),
         ForeignKey("categories.id"),
         nullable=False
     )
 
     brand_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
+        PG_UUID(as_uuid=True),
         ForeignKey("brands.id")
     )
 
@@ -159,46 +158,3 @@ class Product(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow
     )
-
-class ProductImageSummary(BaseModel):
-    id: UUID
-    image_url: str
-    is_primary: bool
-    display_order: int
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class ProductRatingSummary(BaseModel):
-    average: float
-    count: int
-
-
-class ProductInventorySummary(BaseModel):
-    available: bool
-    quantity: int
-
-class ProductDetailResponse(BaseModel):
-
-    id: UUID
-    name: str
-    sku: str
-    slug: str
-
-    short_description: str | None
-    description: str | None
-
-    selling_price: Decimal
-
-    status: str
-
-    category_id: UUID | None
-    brand_id: UUID | None
-
-    images: list[ProductImageSummary]
-
-    rating: ProductRatingSummary
-
-    inventory: ProductInventorySummary
-
-    model_config = ConfigDict(from_attributes=True)
