@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -42,4 +42,9 @@ class Wishlist(Base):
         DateTime,
         nullable=False,
         default=datetime.utcnow,
+    )
+
+    product = relationship(
+        "Product",
+        lazy="joined",
     )
