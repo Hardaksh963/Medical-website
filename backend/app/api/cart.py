@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from datetime import date
 
 from app.api.dependencies import get_current_user
 from app.core.database import get_db
@@ -125,7 +126,12 @@ def add_to_cart(
         )
         .filter(
             ProductBatch.product_id == product.id,
-            ProductBatch.is_active.is_(True)
+            ProductBatch.is_active.is_(True),
+            ProductBatch.quantity > 0,
+            (
+                ProductBatch.expiry_date.is_(None)
+                | (ProductBatch.expiry_date >= date.today())
+            )
         )
         .scalar()
     )
