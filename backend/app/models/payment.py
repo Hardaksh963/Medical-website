@@ -69,3 +69,15 @@ class Payment(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow
     )
+
+    razorpay_order_id: Mapped[str | None] = mapped_column(
+        String(100),
+        unique=True,
+        nullable=True
+    )
+
+    razorpay_payment_id: Mapped[str | None] = mapped_column(
+        String(100),
+        unique=True,
+        nullable=True
+    )
