@@ -17,7 +17,27 @@ class PaymentResponse(BaseModel):
     payment_method: str
     status: str
     transaction_id: str | None
+
+    razorpay_order_id: str | None
+    razorpay_payment_id: str | None
+
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RazorpayOrderResponse(BaseModel):
+    payment_id: uuid.UUID
+    order_id: uuid.UUID
+    razorpay_order_id: str
+    amount: int
+    currency: str
+    key_id: str
+
+
+class RazorpayVerifyRequest(BaseModel):
+    order_id: uuid.UUID
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
