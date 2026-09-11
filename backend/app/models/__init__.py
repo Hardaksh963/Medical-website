@@ -11,3 +11,4 @@ from app.models.payment import Payment
 from app.models.review import Review
 from app.models.product_image import ProductImage
 from app.models.wishlist import Wishlist
+from app.models.notification import Notification
