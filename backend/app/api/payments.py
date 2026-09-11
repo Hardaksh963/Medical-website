@@ -10,6 +10,7 @@ from app.schemas.payment import (
     PaymentCreate,
     PaymentResponse,
     RazorpayOrderResponse,
+    RazorpayVerifyRequest,
 )
 
 from app.services.payment_service import (
@@ -17,6 +18,7 @@ from app.services.payment_service import (
     confirm_payment,
     fail_payment,
     create_razorpay_order,
+    verify_razorpay_payment,
 )
 
 router = APIRouter(
@@ -55,6 +57,24 @@ def create_razorpay_order_endpoint(
         db=db,
         user_id=current_user.id,
         order_id=order_id,
+    )
+
+@router.post(
+    "/razorpay/verify",
+    response_model=PaymentResponse,
+)
+def verify_razorpay_payment_endpoint(
+    data: RazorpayVerifyRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return verify_razorpay_payment(
+        db=db,
+        user_id=current_user.id,
+        order_id=data.order_id,
+        razorpay_order_id=data.razorpay_order_id,
+        razorpay_payment_id=data.razorpay_payment_id,
+        razorpay_signature=data.razorpay_signature,
     )
 
 @router.post(

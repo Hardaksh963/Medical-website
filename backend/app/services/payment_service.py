@@ -321,6 +321,133 @@ def create_razorpay_order(
         "key_id": settings.RAZORPAY_KEY_ID,
     }
 
+def verify_razorpay_payment(
+    db: Session,
+    user_id: uuid.UUID,
+    order_id: uuid.UUID,
+    razorpay_order_id: str,
+    razorpay_payment_id: str,
+    razorpay_signature: str,
+):
+    # ---------------------------------------------------------
+    # Find the user's payment
+    # ---------------------------------------------------------
+    payment = (
+        db.query(Payment)
+        .join(Order, Payment.order_id == Order.id)
+        .filter(
+            Payment.order_id == order_id,
+            Order.user_id == user_id,
+        )
+        .with_for_update()
+        .first()
+    )
+
+    if not payment:
+        raise HTTPException(
+            status_code=404,
+            detail="Payment not found",
+        )
+
+    # ---------------------------------------------------------
+    # Prevent duplicate verification
+    # ---------------------------------------------------------
+    if payment.status == "SUCCESS":
+        raise HTTPException(
+            status_code=409,
+            detail="Payment already verified",
+        )
+
+    # ---------------------------------------------------------
+    # Verify this is an ONLINE payment
+    # ---------------------------------------------------------
+    if payment.payment_method != "ONLINE":
+        raise HTTPException(
+            status_code=400,
+            detail="This is not an online payment",
+        )
+
+    # ---------------------------------------------------------
+    # Verify Razorpay order ID matches our database
+    # ---------------------------------------------------------
+    if payment.razorpay_order_id != razorpay_order_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Razorpay order ID does not match",
+        )
+
+    # ---------------------------------------------------------
+    # Verify signature
+    # ---------------------------------------------------------
+    client = razorpay.Client(
+        auth=(
+            settings.RAZORPAY_KEY_ID,
+            settings.RAZORPAY_KEY_SECRET,
+        )
+    )
+
+    try:
+        client.utility.verify_payment_signature(
+            {
+                "razorpay_order_id": razorpay_order_id,
+                "razorpay_payment_id": razorpay_payment_id,
+                "razorpay_signature": razorpay_signature,
+            }
+        )
+
+    except razorpay.errors.SignatureVerificationError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid Razorpay payment signature",
+        )
+
+    # ---------------------------------------------------------
+    # Get order
+    # ---------------------------------------------------------
+    order = (
+        db.query(Order)
+        .filter(Order.id == payment.order_id)
+        .with_for_update()
+        .first()
+    )
+
+    if not order:
+        raise HTTPException(
+            status_code=404,
+            detail="Order not found",
+        )
+
+    if order.status == "CANCELLED":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot verify payment for cancelled order",
+        )
+
+    # ---------------------------------------------------------
+    # Mark payment successful
+    # ---------------------------------------------------------
+    try:
+        payment.status = "SUCCESS"
+        payment.razorpay_payment_id = razorpay_payment_id
+
+        # Store Razorpay payment ID as our transaction reference
+        payment.transaction_id = razorpay_payment_id
+
+        # -----------------------------------------------------
+        # Confirm order
+        # -----------------------------------------------------
+        if order.status == "PENDING":
+            order.status = "CONFIRMED"
+
+        db.commit()
+        db.refresh(payment)
+
+        return payment
+
+    except Exception:
+        db.rollback()
+        raise
+
 def fail_payment(
     db: Session,
     user_id: uuid.UUID,
