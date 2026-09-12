@@ -9,6 +9,8 @@ from app.models.user import User
 from app.models.complaint import Complaint
 from app.models.order import Order
 
+from app.services.notification_service import create_notification
+
 from app.schemas.complaint import (
     ComplaintCreate,
     ComplaintResponse,
@@ -35,20 +37,20 @@ def create_complaint(
     if data.order_id is not None:
 
         order = (
-        db.query(Order)
-        .filter(
-            Order.id == data.order_id,
-            Order.user_id == current_user.id
+            db.query(Order)
+            .filter(
+                Order.id == data.order_id,
+                Order.user_id == current_user.id
+            )
+            .first()
         )
-        .first()
-    )
 
         if not order:
             raise HTTPException(
-            status_code=404,
-            detail="Order not found"
-        )
-    
+                status_code=404,
+                detail="Order not found"
+            )
+
     complaint = Complaint(
         user_id=current_user.id,
         order_id=data.order_id,
@@ -81,9 +83,6 @@ def get_my_complaints(
     )
 
     return complaints
-
-
-# CUSTOMER: View one complaint
 
 
 # ADMIN: View all complaints
@@ -142,14 +141,33 @@ def update_complaint(
             detail="Complaint not found"
         )
 
+    # Store the previous status before updating
+    old_status = complaint.status
+
+    # Update complaint
     complaint.status = data.status
     complaint.admin_response = data.admin_response
+
+    # Notify customer only when the status actually changes
+    if old_status != data.status:
+        create_notification(
+            db=db,
+            user_id=complaint.user_id,
+            title="Complaint Status Updated",
+            message=(
+                f"Your complaint {complaint.id} status has been "
+                f"updated from {old_status} to {data.status}."
+            ),
+            notification_type="COMPLAINT",
+        )
 
     db.commit()
     db.refresh(complaint)
 
     return complaint
 
+
+# ADMIN: View one complaint
 @router.get(
     "/admin/{complaint_id}",
     response_model=ComplaintResponse
@@ -159,6 +177,7 @@ def get_admin_complaint(
     current_admin: User = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ):
+
     complaint = (
         db.query(Complaint)
         .filter(Complaint.id == complaint_id)
@@ -173,6 +192,8 @@ def get_admin_complaint(
 
     return complaint
 
+
+# CUSTOMER: View one complaint
 @router.get(
     "/{complaint_id}",
     response_model=ComplaintResponse

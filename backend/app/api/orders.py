@@ -12,6 +12,7 @@ from app.services.order_service import (
 )
 from app.api.admin_dependencies import get_current_admin
 from app.schemas.order import OrderStatusUpdate
+from app.services.notification_service import create_notification
 
 router = APIRouter(
     prefix="/orders",
@@ -102,33 +103,13 @@ def get_admin_order(
         "items": items
     }
 
-
 @router.patch("/admin/{order_id}/status")
 def update_order_status(
-    order_id: str,
+    order_id: UUID,
     data: OrderStatusUpdate,
-    current_admin: User = Depends(get_current_admin),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
 ):
-
-    allowed_statuses = {
-        "PENDING",
-        "CONFIRMED",
-        "PROCESSING",
-        "SHIPPED",
-        "DELIVERED",
-        "CANCELLED"
-    }
-
-    if data.status not in allowed_statuses:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"Invalid order status. "
-                f"Allowed values: {', '.join(sorted(allowed_statuses))}"
-            )
-        )
-
     order = (
         db.query(Order)
         .filter(Order.id == order_id)
@@ -138,20 +119,33 @@ def update_order_status(
     if not order:
         raise HTTPException(
             status_code=404,
-            detail="Order not found"
+            detail="Order not found",
         )
 
+    old_status = order.status
+
+    # Do not create a notification if the status has not changed
+    if old_status == data.status:
+        return order
+
     order.status = data.status
+
+    # Create notification for the customer
+    create_notification(
+        db=db,
+        user_id=order.user_id,
+        title="Order Status Updated",
+        message=(
+            f"Your order {order.order_number} status has been "
+            f"updated from {old_status} to {data.status}."
+        ),
+        notification_type="ORDER",
+    )
 
     db.commit()
     db.refresh(order)
 
-    return {
-        "message": "Order status updated successfully",
-        "order_id": str(order.id),
-        "order_number": order.order_number,
-        "status": order.status
-    }
+    return order
 
 @router.patch("/{order_id}/cancel")
 def cancel_customer_order(
