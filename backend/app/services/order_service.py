@@ -11,6 +11,7 @@ from app.models.order import Order, OrderItem
 from app.models.product import Product
 from app.models.batch import ProductBatch
 from app.models.payment import Payment
+from app.services.notification_service import create_notification
 
 
 def create_order(
@@ -220,6 +221,14 @@ def create_order(
             synchronize_session=False
         )
 
+        create_notification(
+            db=db,
+            user_id=user_id,
+            title="Order Placed",
+            message=f"Your order {order.order_number} has been placed successfully.",
+            notification_type="ORDER",
+        )
+
         # -----------------------------------------------------
         # 7. Commit entire transaction
         # -----------------------------------------------------
@@ -333,6 +342,15 @@ def cancel_order(
 
         if payment and payment.status == "PENDING":
             payment.status = "FAILED"
+
+
+        create_notification(
+            db=db,
+            user_id=user_id,
+            title="Order Cancelled",
+            message=f"Your order {order.order_number} has been cancelled successfully.",
+            notification_type="ORDER",
+        )
 
         db.commit()
         db.refresh(order)
