@@ -29,6 +29,40 @@ def get_dashboard_stats(
     current_admin: User = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ):
+    now = datetime.utcnow()
+
+    # -----------------------------------------------------
+    # DATE RANGES
+    # -----------------------------------------------------
+
+    today_start = datetime(
+        now.year,
+        now.month,
+        now.day
+    )
+
+    if now.month == 1:
+        previous_month_start = datetime(
+            now.year - 1,
+            12,
+            1
+        )
+    else:
+        previous_month_start = datetime(
+            now.year,
+            now.month - 1,
+            1
+        )
+
+    current_month_start = datetime(
+        now.year,
+        now.month,
+        1
+    )
+
+    # -----------------------------------------------------
+    # CUSTOMERS
+    # -----------------------------------------------------
 
     total_customers = (
         db.query(User)
@@ -36,25 +70,34 @@ def get_dashboard_stats(
         .count()
     )
 
+    # -----------------------------------------------------
+    # PRODUCTS
+    # -----------------------------------------------------
+
     total_products = (
         db.query(Product)
         .count()
     )
 
-    total_orders = (
-        db.query(Order)
+    active_products = (
+        db.query(Product)
+        .filter(Product.status == "ACTIVE")
         .count()
     )
 
-    total_revenue = (
-        db.query(
-            func.coalesce(
-                func.sum(Order.total_amount),
-                0
-            )
-        )
-        .filter(Order.status != "CANCELLED")
-        .scalar()
+    inactive_products = (
+        db.query(Product)
+        .filter(Product.status == "INACTIVE")
+        .count()
+    )
+
+    # -----------------------------------------------------
+    # ORDERS
+    # -----------------------------------------------------
+
+    total_orders = (
+        db.query(Order)
+        .count()
     )
 
     pending_orders = (
@@ -63,9 +106,21 @@ def get_dashboard_stats(
         .count()
     )
 
+    confirmed_orders = (
+        db.query(Order)
+        .filter(Order.status == "CONFIRMED")
+        .count()
+    )
+
     processing_orders = (
         db.query(Order)
         .filter(Order.status == "PROCESSING")
+        .count()
+    )
+
+    shipped_orders = (
+        db.query(Order)
+        .filter(Order.status == "SHIPPED")
         .count()
     )
 
@@ -81,32 +136,108 @@ def get_dashboard_stats(
         .count()
     )
 
-    open_complaints = (
-        db.query(Complaint)
-        .filter(
-            Complaint.status.in_(
-                ["OPEN", "IN_PROGRESS"]
-            )
-        )
+    returned_orders = (
+        db.query(Order)
+        .filter(Order.status == "RETURNED")
         .count()
     )
 
-    low_stock_products = (
-        db.query(ProductBatch.product_id)
-        .join(
-            Product,
-            Product.id == ProductBatch.product_id
+    # -----------------------------------------------------
+    # REVENUE
+    #
+    # Cancelled orders are excluded from revenue.
+    # -----------------------------------------------------
+
+    total_revenue = (
+        db.query(
+            func.coalesce(
+                func.sum(Order.total_amount),
+                0
+            )
         )
-        .group_by(
-            ProductBatch.product_id,
-            Product.reorder_level
+        .filter(Order.status != "CANCELLED")
+        .scalar()
+    )
+
+    today_revenue = (
+        db.query(
+            func.coalesce(
+                func.sum(Order.total_amount),
+                0
+            )
         )
-        .having(
-            func.sum(ProductBatch.quantity)
-            <= Product.reorder_level
+        .filter(
+            Order.created_at >= today_start,
+            Order.status != "CANCELLED"
         )
+        .scalar()
+    )
+
+    current_month_revenue = (
+        db.query(
+            func.coalesce(
+                func.sum(Order.total_amount),
+                0
+            )
+        )
+        .filter(
+            Order.created_at >= current_month_start,
+            Order.status != "CANCELLED"
+        )
+        .scalar()
+    )
+
+    previous_month_revenue = (
+        db.query(
+            func.coalesce(
+                func.sum(Order.total_amount),
+                0
+            )
+        )
+        .filter(
+            Order.created_at >= previous_month_start,
+            Order.created_at < current_month_start,
+            Order.status != "CANCELLED"
+        )
+        .scalar()
+    )
+
+    # -----------------------------------------------------
+    # COMPLAINTS
+    # -----------------------------------------------------
+
+    total_complaints = (
+        db.query(Complaint)
         .count()
     )
+
+    open_complaints = (
+        db.query(Complaint)
+        .filter(Complaint.status == "OPEN")
+        .count()
+    )
+
+    in_progress_complaints = (
+        db.query(Complaint)
+        .filter(Complaint.status == "IN_PROGRESS")
+        .count()
+    )
+
+    resolved_complaints = (
+        db.query(Complaint)
+        .filter(Complaint.status == "RESOLVED")
+        .count()
+    )
+
+    closed_complaints = (
+        db.query(Complaint)
+        .filter(Complaint.status == "CLOSED")
+        .count()
+    )
+
+    # -----------------------------------------------------
+    # INVENTORY
+    # -----------------------------------------------------
 
     total_inventory_units = (
         db.query(
@@ -115,32 +246,131 @@ def get_dashboard_stats(
                 0
             )
         )
+        .filter(
+            ProductBatch.is_active.is_(True)
+        )
         .scalar()
     )
+
+    # -----------------------------------------------------
+    # LOW STOCK PRODUCTS
+    # -----------------------------------------------------
+
+    low_stock_products = (
+        db.query(ProductBatch.product_id)
+        .join(
+            Product,
+            Product.id == ProductBatch.product_id
+        )
+        .filter(
+            Product.status == "ACTIVE",
+            ProductBatch.is_active.is_(True)
+        )
+        .group_by(
+            ProductBatch.product_id,
+            Product.reorder_level
+        )
+        .having(
+            func.coalesce(
+                func.sum(ProductBatch.quantity),
+                0
+            ) <= Product.reorder_level
+        )
+        .count()
+    )
+
+    # -----------------------------------------------------
+    # OUT OF STOCK PRODUCTS
+    # -----------------------------------------------------
+
+    out_of_stock_products = (
+        db.query(Product.id)
+        .outerjoin(
+            ProductBatch,
+            (
+                ProductBatch.product_id == Product.id
+            )
+            & (
+                ProductBatch.is_active.is_(True)
+            )
+        )
+        .filter(
+            Product.status == "ACTIVE"
+        )
+        .group_by(Product.id)
+        .having(
+            func.coalesce(
+                func.sum(ProductBatch.quantity),
+                0
+            ) <= 0
+        )
+        .count()
+    )
+
+    # -----------------------------------------------------
+    # EXPIRING BATCHES
+    # -----------------------------------------------------
+
+    today = now.date()
+    expiry_limit = today + timedelta(days=30)
+
+    expiring_batches = (
+        db.query(ProductBatch)
+        .filter(
+            ProductBatch.is_active.is_(True),
+            ProductBatch.quantity > 0,
+            ProductBatch.expiry_date.isnot(None),
+            ProductBatch.expiry_date <= expiry_limit
+        )
+        .count()
+    )
+
+    # -----------------------------------------------------
+    # DASHBOARD RESPONSE
+    # -----------------------------------------------------
 
     return {
         "customers": {
             "total": total_customers
         },
+
         "products": {
-            "total": total_products
+            "total": total_products,
+            "active": active_products,
+            "inactive": inactive_products
         },
+
         "orders": {
             "total": total_orders,
             "pending": pending_orders,
+            "confirmed": confirmed_orders,
             "processing": processing_orders,
+            "shipped": shipped_orders,
             "delivered": delivered_orders,
-            "cancelled": cancelled_orders
+            "cancelled": cancelled_orders,
+            "returned": returned_orders
         },
+
         "revenue": {
-            "total": total_revenue
+            "total": total_revenue,
+            "today": today_revenue,
+            "this_month": current_month_revenue,
+            "previous_month": previous_month_revenue
         },
+
         "complaints": {
-            "open": open_complaints
+            "total": total_complaints,
+            "open": open_complaints,
+            "in_progress": in_progress_complaints,
+            "resolved": resolved_complaints,
+            "closed": closed_complaints
         },
+
         "inventory": {
             "total_units": total_inventory_units,
-            "low_stock_products": low_stock_products
+            "low_stock_products": low_stock_products,
+            "out_of_stock_products": out_of_stock_products,
+            "expiring_batches_30_days": expiring_batches
         }
     }
 

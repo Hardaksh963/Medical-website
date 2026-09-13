@@ -6,6 +6,7 @@ from app.api.products import router as products_router
 from app.api.cart import router as cart_router
 from app.api.orders import router as orders_router
 from app.api.inventory import router as inventory_router
+from app.core.exceptions import register_exception_handlers
 
 from app.api.dependencies import get_current_user
 from app.api.admin_dependencies import get_current_admin
@@ -23,6 +24,8 @@ app = FastAPI(
     description="Backend API for a medical products e-commerce platform",
     version="1.0.0"
 )
+
+register_exception_handlers(app)
 
 
 app.add_middleware(
