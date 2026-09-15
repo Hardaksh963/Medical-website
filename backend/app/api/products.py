@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
@@ -32,10 +34,17 @@ router = APIRouter(
 )
 def get_products(
     search: str | None = None,
-    category_id: str | None = None,
+    category_id: UUID | None = None,
     product_type: str | None = None,
-    min_price: float | None = None,
-    max_price: float | None = None,
+    min_price: Decimal | None = Query(
+        default=None,
+        ge=0
+    ),
+
+    max_price: Decimal | None = Query(
+        default=None,
+        ge=0
+    ),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -136,7 +145,7 @@ def get_product_details_endpoint(
     response_model=ProductResponse
 )
 def get_product(
-    product_id: str,
+    product_id: UUID,
     db: Session = Depends(get_db),
 ):
 
@@ -213,7 +222,7 @@ def create_product(
     response_model=ProductResponse,
 )
 def update_product(
-    product_id: str,
+    product_id: UUID,
     data: ProductUpdate,
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin),
@@ -283,7 +292,7 @@ def update_product(
     response_model=ProductResponse,
 )
 def deactivate_product(
-    product_id: str,
+    product_id: UUID,
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin),
 ):
@@ -313,7 +322,7 @@ def deactivate_product(
     response_model=ProductResponse,
 )
 def update_product_status(
-    product_id: str,
+    product_id: UUID,
     product_status: str,
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin),

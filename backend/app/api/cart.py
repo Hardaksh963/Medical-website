@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from datetime import date
+from uuid import UUID
 
 from app.api.dependencies import get_current_user
 from app.core.database import get_db
@@ -86,7 +87,7 @@ def get_cart(
 
 @router.post("/items")
 def add_to_cart(
-    product_id: str,
+    product_id: UUID,
     quantity: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -204,7 +205,7 @@ def add_to_cart(
 
 @router.patch("/items/{item_id}")
 def update_cart_item(
-    item_id: str,
+    item_id: UUID,
     quantity: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -276,7 +277,7 @@ def update_cart_item(
 
 @router.delete("/items/{item_id}")
 def remove_cart_item(
-    item_id: str,
+    item_id: UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):

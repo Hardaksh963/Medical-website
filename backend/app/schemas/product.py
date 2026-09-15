@@ -1,7 +1,7 @@
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class ProductBase(BaseModel):
@@ -12,7 +12,7 @@ class ProductBase(BaseModel):
     category_id: UUID
     brand_id: UUID | None = None
 
-    product_type: str
+    product_type: str = Field(min_length=1, max_length=100)
 
     short_description: str | None = None
     description: str | None = None
@@ -34,20 +34,46 @@ class ProductBase(BaseModel):
     reorder_level: int = Field(default=5, ge=0)
     weight_grams: int | None = Field(default=None, gt=0)
 
+    @model_validator(mode="after")
+    def validate_price(self):
+        if self.selling_price > self.mrp:
+            raise ValueError(
+                "Selling price cannot be greater than MRP"
+            )
+        return self
+
 
 class ProductCreate(ProductBase):
     pass
 
 
 class ProductUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=255)
-    slug: str | None = Field(default=None, min_length=1, max_length=280)
-    sku: str | None = Field(default=None, min_length=1, max_length=100)
+    name: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=255
+    )
+
+    slug: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=280
+    )
+
+    sku: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=100
+    )
 
     category_id: UUID | None = None
     brand_id: UUID | None = None
 
-    product_type: str | None = None
+    product_type: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=100
+    )
 
     short_description: str | None = None
     description: str | None = None
@@ -69,7 +95,11 @@ class ProductUpdate(BaseModel):
     reorder_level: int | None = Field(default=None, ge=0)
     weight_grams: int | None = Field(default=None, gt=0)
 
-    status: str | None = None
+    status: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=20
+    )
 
 
 class ProductResponse(ProductBase):
@@ -101,6 +131,7 @@ class ProductInventorySummary(BaseModel):
     available: bool
     quantity: int
 
+
 class ProductCategorySummary(BaseModel):
     id: UUID
     name: str
@@ -117,6 +148,7 @@ class ProductBrandSummary(BaseModel):
     model_config = ConfigDict(
         from_attributes=True
     )
+
 
 class ProductDetailResponse(BaseModel):
     id: UUID
