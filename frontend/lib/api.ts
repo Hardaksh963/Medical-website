@@ -1,4 +1,4 @@
-import { Product, ProductDetail } from "./types";
+import { Product, ProductDetail, ProductListResponse } from "./types";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -73,9 +73,18 @@ export async function getProducts(params?: {
 
   const query = searchParams.toString();
 
-  return apiRequest<Product[]>(
+  const response = await apiRequest<ProductListResponse>(
     `/products${query ? `?${query}` : ""}`
   );
+
+  console.log("Products API response:", response);
+
+  if (!response || !Array.isArray(response.items)) {
+    console.error("Unexpected products response:", response);
+    return [];
+  }
+
+  return response.items;
 }
 
 export async function getProduct(
