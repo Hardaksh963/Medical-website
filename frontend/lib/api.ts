@@ -1,4 +1,4 @@
-import { Product } from "./types";
+import { Product, ProductDetail } from "./types";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -28,7 +28,7 @@ async function apiRequest<T>(
             : JSON.stringify(error.detail);
       }
     } catch {
-      // Keep the default error message.
+      // Keep default error message.
     }
 
     throw new Error(message);
@@ -82,4 +82,12 @@ export async function getProduct(
   productId: string
 ): Promise<Product> {
   return apiRequest<Product>(`/products/${productId}`);
+}
+
+export async function getProductDetails(
+  productId: string
+): Promise<ProductDetail> {
+  return apiRequest<ProductDetail>(
+    `/products/${productId}/details`
+  );
 }

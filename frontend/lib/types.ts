@@ -1,3 +1,10 @@
+export interface ProductImage {
+  id: string;
+  image_url: string;
+  is_primary: boolean;
+  display_order: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -7,6 +14,7 @@ export interface Product {
   short_description: string | null;
   description: string | null;
 
+  mrp: number;
   selling_price: number;
   status: string;
 
@@ -26,11 +34,19 @@ export interface Product {
   images?: ProductImage[];
 }
 
-export interface ProductImage {
-  id: string;
-  image_url: string;
-  is_primary: boolean;
-  display_order: number;
+export interface ProductRating {
+  average: number;
+  count: number;
+}
+
+export interface ProductInventory {
+  available: boolean;
+  quantity: number;
+}
+
+export interface ProductDetail extends Product {
+  rating: ProductRating;
+  inventory: ProductInventory;
 }
 
 export interface ProductListResponse {
