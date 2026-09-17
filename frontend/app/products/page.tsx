@@ -6,7 +6,19 @@ import ProductCard from "@/components/ProductCard";
 import { getProducts } from "@/lib/api";
 import { Product } from "@/lib/types";
 
-export default async function ProductsPage() {
+interface ProductsPageProps {
+  searchParams: Promise<{
+    category_id?: string;
+  }>;
+}
+
+export default async function ProductsPage({
+  searchParams,
+}: ProductsPageProps) {
+  const params = await searchParams;
+
+  const selectedCategoryId = params.category_id;
+
   let products: Product[] = [];
   let errorMessage = "";
 
@@ -14,9 +26,11 @@ export default async function ProductsPage() {
     products = await getProducts({
       page: 1,
       limit: 100,
+      category_id: selectedCategoryId,
     });
   } catch (error) {
     console.error("Failed to load products:", error);
+
     errorMessage =
       "Unable to load products. Please make sure the backend is running.";
   }
@@ -40,11 +54,15 @@ export default async function ProductsPage() {
 
             <div className="mt-4">
               <h1 className="text-3xl font-bold text-gray-900">
-                Medical Products
+                {selectedCategoryId
+                  ? "Category Products"
+                  : "Medical Products"}
               </h1>
 
               <p className="mt-2 text-gray-500">
-                Browse our range of medical and healthcare products.
+                {selectedCategoryId
+                  ? "Browse products in this category."
+                  : "Browse our range of medical and healthcare products."}
               </p>
             </div>
           </div>
@@ -65,7 +83,8 @@ export default async function ProductsPage() {
           {/* Product count */}
           {!errorMessage && (
             <div className="mb-5 text-sm text-gray-500">
-              {products.length} products available
+              {products.length}{" "}
+              {products.length === 1 ? "product" : "products"} available
             </div>
           )}
 
@@ -100,8 +119,19 @@ export default async function ProductsPage() {
                 </h2>
 
                 <p className="mt-2 text-gray-500">
-                  There are currently no products available.
+                  {selectedCategoryId
+                    ? "There are currently no products in this category."
+                    : "There are currently no products available."}
                 </p>
+
+                {selectedCategoryId && (
+                  <Link
+                    href="/products"
+                    className="mt-5 inline-block rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+                  >
+                    View All Products
+                  </Link>
+                )}
               </div>
             )
           )}

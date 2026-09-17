@@ -166,8 +166,8 @@ class ProductDetailResponse(BaseModel):
     category_id: UUID | None
     brand_id: UUID | None
 
-    category: ProductCategorySummary | None
-    brand: ProductBrandSummary | None
+    category: ProductCategorySummary | None = None
+    brand: ProductBrandSummary | None = None
 
     images: list[ProductImageSummary]
 

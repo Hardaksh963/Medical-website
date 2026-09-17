@@ -114,7 +114,7 @@ export default async function HomePage() {
                     <Link
                       key={category.id}
                       href={`/products?category=${encodeURIComponent(
-                        category.name
+                        category.id
                       )}`}
                       className="group rounded-xl border bg-white p-6 transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-md"
                     >
