@@ -9,6 +9,7 @@ import { Product } from "@/lib/types";
 interface ProductsPageProps {
   searchParams: Promise<{
     category_id?: string;
+    search?: string;
   }>;
 }
 
@@ -18,6 +19,7 @@ export default async function ProductsPage({
   const params = await searchParams;
 
   const selectedCategoryId = params.category_id;
+  const searchQuery = params.search;
 
   let products: Product[] = [];
   let errorMessage = "";
@@ -26,6 +28,7 @@ export default async function ProductsPage({
     products = await getProducts({
       page: 1,
       limit: 100,
+      search: searchQuery,
       category_id: selectedCategoryId,
     });
   } catch (error) {
@@ -54,15 +57,19 @@ export default async function ProductsPage({
 
             <div className="mt-4">
               <h1 className="text-3xl font-bold text-gray-900">
-                {selectedCategoryId
-                  ? "Category Products"
-                  : "Medical Products"}
+                {searchQuery
+                  ? `Search results for "${searchQuery}"`
+                  : selectedCategoryId
+                    ? "Category Products"
+                    : "Medical Products"}
               </h1>
 
               <p className="mt-2 text-gray-500">
-                {selectedCategoryId
-                  ? "Browse products in this category."
-                  : "Browse our range of medical and healthcare products."}
+                {searchQuery
+                  ? "Products matching your search."
+                  : selectedCategoryId
+                    ? "Browse products in this category."
+                    : "Browse our range of medical and healthcare products."}
               </p>
             </div>
           </div>
@@ -119,12 +126,14 @@ export default async function ProductsPage({
                 </h2>
 
                 <p className="mt-2 text-gray-500">
-                  {selectedCategoryId
-                    ? "There are currently no products in this category."
-                    : "There are currently no products available."}
+                  {searchQuery
+                    ? `No products matched "${searchQuery}".`
+                    : selectedCategoryId
+                      ? "There are currently no products in this category."
+                      : "There are currently no products available."}
                 </p>
 
-                {selectedCategoryId && (
+                {(selectedCategoryId || searchQuery) && (
                   <Link
                     href="/products"
                     className="mt-5 inline-block rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"

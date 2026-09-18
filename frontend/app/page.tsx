@@ -3,35 +3,28 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import ProductCard from "@/components/ProductCard";
-import { getProducts } from "@/lib/api";
-import { Product } from "@/lib/types";
+import { getCategories, getProducts } from "@/lib/api";
+import { Category, Product } from "@/lib/types";
 
 export default async function HomePage() {
   let products: Product[] = [];
+  let categories: Category[] = [];
   let errorMessage = "";
 
   try {
-    products = await getProducts({
-      page: 1,
-      limit: 100,
-    });
+    [products, categories] = await Promise.all([
+      getProducts({
+        page: 1,
+        limit: 100,
+      }),
+      getCategories(),
+    ]);
   } catch (error) {
-    console.error("Failed to load products:", error);
+    console.error("Failed to load home page data:", error);
 
     errorMessage =
-      "Unable to load products. Please make sure the backend is running.";
+      "Unable to load data. Please make sure the backend is running.";
   }
-
-  const categories = Array.from(
-    new Map(
-      (products || [])
-        .filter((product) => product.category)
-        .map((product) => [
-          product.category!.id,
-          product.category!,
-        ])
-    ).values()
-  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -71,7 +64,7 @@ export default async function HomePage() {
           {/* Main Content */}
           <div className="mx-auto max-w-7xl px-8 py-12">
 
-            {/* Categories */}
+            {/* Shop by Category */}
             <section>
               <div className="mb-6 flex items-end justify-between">
                 <div>
@@ -102,18 +95,12 @@ export default async function HomePage() {
                     {errorMessage}
                   </p>
                 </div>
-              ) : categories.length === 0 ? (
-                <div className="rounded-xl border bg-white p-8 text-center">
-                  <p className="text-gray-500">
-                    Categories are currently unavailable.
-                  </p>
-                </div>
-              ) : (
+              ) : categories.length > 0 ? (
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {categories.map((category) => (
                     <Link
                       key={category.id}
-                      href={`/products?category=${encodeURIComponent(
+                      href={`/products?category_id=${encodeURIComponent(
                         category.id
                       )}`}
                       className="group rounded-xl border bg-white p-6 transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-md"
@@ -131,6 +118,12 @@ export default async function HomePage() {
                       </p>
                     </Link>
                   ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border bg-white p-8 text-center">
+                  <p className="text-gray-500">
+                    No categories available.
+                  </p>
                 </div>
               )}
             </section>
@@ -177,13 +170,11 @@ export default async function HomePage() {
                   ))}
                 </div>
               ) : (
-                !errorMessage && (
-                  <div className="rounded-xl border bg-white p-8 text-center">
-                    <p className="text-gray-500">
-                      No products available.
-                    </p>
-                  </div>
-                )
+                <div className="rounded-xl border bg-white p-8 text-center">
+                  <p className="text-gray-500">
+                    No products available.
+                  </p>
+                </div>
               )}
             </section>
 
@@ -191,9 +182,11 @@ export default async function HomePage() {
             <section className="mt-14 grid gap-5 md:grid-cols-3">
               <div className="rounded-xl border bg-white p-6">
                 <div className="text-3xl">✓</div>
+
                 <h3 className="mt-4 font-semibold text-gray-900">
                   Quality Products
                 </h3>
+
                 <p className="mt-2 text-sm text-gray-500">
                   Reliable medical and healthcare products.
                 </p>
@@ -201,9 +194,11 @@ export default async function HomePage() {
 
               <div className="rounded-xl border bg-white p-6">
                 <div className="text-3xl">🚚</div>
+
                 <h3 className="mt-4 font-semibold text-gray-900">
                   Easy Ordering
                 </h3>
+
                 <p className="mt-2 text-sm text-gray-500">
                   Simple and convenient online ordering.
                 </p>
@@ -211,9 +206,11 @@ export default async function HomePage() {
 
               <div className="rounded-xl border bg-white p-6">
                 <div className="text-3xl">🔒</div>
+
                 <h3 className="mt-4 font-semibold text-gray-900">
                   Secure Shopping
                 </h3>
+
                 <p className="mt-2 text-sm text-gray-500">
                   Secure account and checkout experience.
                 </p>

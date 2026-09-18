@@ -34,6 +34,11 @@ export interface Product {
   images?: ProductImage[];
 }
 
+export interface Category {
+  id: string;
+  name: string;
+}
+
 export interface ProductRating {
   average: number;
   count: number;

@@ -18,6 +18,7 @@ from app.api.reviews import router as reviews_router
 from app.api.product_images import router as product_images_router
 from app.api.wishlist import router as wishlist_router
 from app.api.notifications import router as notifications_router
+from app.api import categories
 
 app = FastAPI(
     title="Medical Store API",
@@ -52,6 +53,7 @@ app.include_router(reviews_router)
 app.include_router(product_images_router)
 app.include_router(wishlist_router)
 app.include_router(notifications_router)
+app.include_router(categories.router)
 
 @app.get("/")
 def root():

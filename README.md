@@ -1826,27 +1826,135 @@ I would do it in this exact order:
 
 **1. Define the product catalog → 2. Design ER diagram → 3. Design customer/admin wireframes → 4. Create PostgreSQL schema → 5. Build FastAPI backend → 6. Implement authentication/RBAC → 7. Build product/category/search system → 8. Build cart/orders → 9. Build inventory → 10. Build admin dashboard → 11. Add reviews/complaints → 12. Add payments → 13. Add analytics → 14. Security/testing → 15. Deploy.**
 
-✅ Authentication
-✅ Authorization
-✅ Products
-✅ Categories
-✅ Inventory / Batches
-✅ Cart
-✅ Checkout
-✅ Order management
-✅ Complaints
-✅ Admin dashboard
-✅ Payment system
-✅ Addresses
-✅ Product reviews & ratings
-✅ Wishlist
-✅ Notifications
-✅ Admin statistics improvements
+Phase 1 — Product browsing
+✅ Home page
+✅ Navbar
+✅ Sidebar
+✅ Dynamic categories
+✅ Category filtering
+⬜ Search products
+⬜ Price filtering
+⬜ Product listing improvements
+⬜ Product detail page
+⬜ Product images
+⬜ Stock/availability display
+⬜ Rating/review display
+Phase 2 — Customer authentication
+⬜ Login page
+⬜ Register page
+⬜ Connect login/register to FastAPI
+⬜ JWT/token storage
+⬜ /auth/me integration
+⬜ Navbar changes based on login state
+⬜ Logout
+⬜ Protected customer pages
+⬜ Redirect unauthenticated users when purchasing
+Phase 3 — Shopping cart
+⬜ Add to Cart button
+⬜ Connect POST /cart/items
+⬜ Cart page
+⬜ Display cart items
+⬜ Increase/decrease quantity
+⬜ Remove item
+⬜ Clear cart
+⬜ Stock validation
+⬜ Cart total calculation
+Phase 4 — Checkout & orders
+⬜ Checkout page
+⬜ Order summary
+⬜ Shipping/details form
+⬜ Connect checkout API
+⬜ Order creation
+⬜ Order confirmation page
+⬜ My Orders page
+⬜ Order details page
+⬜ Cancel order
+⬜ Order status display
+Phase 5 — Payment
+⬜ Razorpay frontend integration
+⬜ Payment success handling
+⬜ Payment failure handling
+⬜ Payment verification
+⬜ Webhook handling
+⬜ Update payment/order status
 
-➡️ API validation/error handling
-➡️ Testing
-➡️ Production configuration
-➡️ Frontend integration
+We'll do this near the end, as planned.
+
+Phase 6 — Customer features
+⬜ Wishlist page
+⬜ Add/remove wishlist
+⬜ Product reviews
+⬜ Submit review
+⬜ Edit/delete review
+⬜ Complaints page
+⬜ Submit complaint
+⬜ View complaint status
+⬜ Notifications
+⬜ Notification dropdown/page
+⬜ Mark notification read
+Phase 7 — Admin panel
+⬜ Admin login/access
+⬜ Admin dashboard
+⬜ Sales statistics
+⬜ Customer statistics
+⬜ Order statistics
+⬜ Inventory statistics
+⬜ Product management
+⬜ Add product
+⬜ Edit product
+⬜ Deactivate product
+⬜ Product image management
+⬜ Category/brand management if needed
+⬜ Batch management
+⬜ Stock adjustment
+⬜ Low-stock products
+⬜ Expiring batches
+⬜ Order management
+⬜ Update order status
+⬜ Complaint management
+⬜ Customer/user management if required
+Phase 8 — Frontend polish
+⬜ Responsive mobile layout
+⬜ Loading states
+⬜ Error states
+⬜ Empty states
+⬜ Toast notifications
+⬜ Navbar/cart badge
+⬜ Authentication-aware navigation
+⬜ Form validation
+⬜ Better product cards
+⬜ Consistent UI styling
+Phase 9 — Final backend hardening
+
+We postponed these while building the frontend:
+
+⬜ API validation fixes
+⬜ Search validation
+⬜ Price validation
+⬜ Enum validation
+⬜ UUID validation
+⬜ Inventory validation
+⬜ Expiry validation
+⬜ Order status validation
+⬜ Fix /products/{id}/details review bug
+⬜ Fix admin dashboard User.created_at issue if still present
+⬜ API error handling review
+⬜ Authorization/security review
+Phase 10 — Testing & deployment
+⬜ Complete API testing
+⬜ Frontend testing
+⬜ Customer flow testing
+⬜ Admin flow testing
+⬜ Inventory edge-case testing
+⬜ Payment testing
+⬜ Security testing
+⬜ Production environment variables
+⬜ Database production setup
+⬜ Backend deployment
+⬜ Frontend deployment
+⬜ CORS production configuration
+⬜ Razorpay production configuration
+⬜ Final project documentation
 
 [1]: https://cdsco.gov.in/opencms/opencms/en/Acts-and-rules/Medical-Devices-Rules/?utm_source=chatgpt.com "Circulars"
 [2]: https://www.cdsco.gov.in/opencms/opencms/en/Medical-Device-Diagnostics/Medical-Device-Diagnostics/?utm_source=chatgpt.com "Medical device & diagnostics"
