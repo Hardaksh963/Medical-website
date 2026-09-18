@@ -140,6 +140,47 @@ def get_product_details_endpoint(
         }
     }
 
+
+
+@router.get(
+    "/admin",
+    response_model=list[ProductResponse],
+)
+def get_admin_products(
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    products = (
+        db.query(Product)
+        .order_by(Product.created_at.desc())
+        .all()
+    )
+
+    return products
+
+@router.get(
+    "/admin/{product_id}",
+    response_model=ProductResponse,
+)
+def get_admin_product(
+    product_id: UUID,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    product = (
+        db.query(Product)
+        .filter(Product.id == product_id)
+        .first()
+    )
+
+    if not product:
+        raise HTTPException(
+            status_code=404,
+            detail="Product not found",
+        )
+
+    return product
+
 @router.get(
     "/{product_id}",
     response_model=ProductResponse
@@ -170,6 +211,8 @@ def get_product(
 # ---------------------------------------------------------
 # ADMIN
 # ---------------------------------------------------------
+
+
 
 @router.post(
     "/admin",

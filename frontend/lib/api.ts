@@ -552,7 +552,7 @@ export async function getAdminDashboard(): Promise<AdminDashboardResponse> {
 export async function getAdminProducts(): Promise<Product[]> {
   const token = getAuthToken();
 
-  return apiRequest<Product[]>("/products", {
+  return apiRequest<Product[]>("/products/admin", {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -628,5 +628,141 @@ export async function createAdminProduct(
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(data),
+  });
+}
+
+export async function updateAdminProduct(
+  productId: string,
+  data: Partial<Product>
+): Promise<Product> {
+  const token = getAuthToken();
+
+  return apiRequest<Product>(
+    `/products/admin/${encodeURIComponent(productId)}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    }
+  );
+}
+
+export async function getAdminProduct(
+  productId: string
+): Promise<Product> {
+  const token = getAuthToken();
+
+  return apiRequest<Product>(
+    `/products/admin/${encodeURIComponent(productId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+}
+
+export interface Batch {
+  id: string;
+  product_id: string;
+  batch_number: string;
+  quantity: number;
+  manufacturing_date: string | null;
+  expiry_date: string | null;
+  is_active: boolean;
+}
+
+export interface InventoryMovement {
+  id: string;
+  product_id: string;
+  batch_id: string;
+  quantity: number;
+  movement_type: string;
+  reason: string | null;
+  created_at: string;
+}
+
+export interface CreateBatchData {
+  product_id: string;
+  batch_number: string;
+  quantity: number;
+  manufacturing_date?: string | null;
+  expiry_date?: string | null;
+}
+
+export interface InventoryAdjustmentData {
+  batch_id: string;
+  quantity: number;
+  movement_type: string;
+  reason?: string | null;
+}
+
+export async function getProductInventory(
+  productId: string
+): Promise<Batch[]> {
+  const token = getAuthToken();
+
+  return apiRequest<Batch[]>(
+    `/inventory/admin/${encodeURIComponent(productId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+}
+
+export async function createInventoryBatch(
+  data: CreateBatchData
+): Promise<Batch> {
+  const token = getAuthToken();
+
+  return apiRequest<Batch>("/inventory/admin/batches", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function adjustInventory(
+  data: InventoryAdjustmentData
+): Promise<InventoryMovement> {
+  const token = getAuthToken();
+
+  return apiRequest<InventoryMovement>("/inventory/admin/adjust", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getInventoryMovements(
+  productId: string
+): Promise<InventoryMovement[]> {
+  const token = getAuthToken();
+
+  return apiRequest<InventoryMovement[]>(
+    `/inventory/admin/${encodeURIComponent(productId)}/movements`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+}
+
+export async function getLowStockProducts(): Promise<Product[]> {
+  const token = getAuthToken();
+
+  return apiRequest<Product[]>("/inventory/admin/low-stock", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
 }

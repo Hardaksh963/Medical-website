@@ -11,16 +11,30 @@ export interface Product {
   sku: string;
   slug: string;
 
-  short_description: string | null;
-  description: string | null;
+  short_description?: string | null;
+  description?: string | null;
 
   mrp: number;
   selling_price: number;
   status: string;
 
+  manufacturer?: string | null;
+  country_of_origin?: string | null;
+
+  is_disposable: boolean;
+  is_sterile?: boolean | null;
+  is_single_use?: boolean | null;
+
+  expiry_required: boolean;
+  batch_tracking_required: boolean;
+
+  warranty_months?: number | null;
+  reorder_level: number;
+  weight_grams?: number | null;
+
   category_id: string | null;
   product_type: string;
-  brand_id: string | null;
+  brand_id?: string | null;
 
   category?: {
     id: string;
