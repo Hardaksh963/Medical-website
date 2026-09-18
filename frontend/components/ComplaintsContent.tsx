@@ -5,12 +5,17 @@ import { FormEvent, useEffect, useState } from "react";
 import {
   createComplaint,
   getComplaints,
+  getOrders,
   Complaint,
+  Order,
 } from "@/lib/api";
 
 export default function ComplaintsContent() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+
   const [loading, setLoading] = useState(true);
+  const [loadingOrders, setLoadingOrders] = useState(true);
 
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
@@ -21,7 +26,7 @@ export default function ComplaintsContent() {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    async function loadComplaints() {
+    async function loadData() {
       try {
         const token = localStorage.getItem("access_token");
 
@@ -30,8 +35,13 @@ export default function ComplaintsContent() {
           return;
         }
 
-        const data = await getComplaints();
-        setComplaints(data);
+        const [complaintsData, ordersData] = await Promise.all([
+          getComplaints(),
+          getOrders(),
+        ]);
+
+        setComplaints(complaintsData);
+        setOrders(ordersData);
       } catch (err) {
         console.error("Failed to load complaints:", err);
 
@@ -42,10 +52,11 @@ export default function ComplaintsContent() {
         );
       } finally {
         setLoading(false);
+        setLoadingOrders(false);
       }
     }
 
-    loadComplaints();
+    loadData();
   }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -53,6 +64,11 @@ export default function ComplaintsContent() {
 
     setError("");
     setSuccess("");
+
+    if (!orderId) {
+      setError("Please select an order.");
+      return;
+    }
 
     if (!subject.trim()) {
       setError("Please enter a subject.");
@@ -64,18 +80,13 @@ export default function ComplaintsContent() {
       return;
     }
 
-    if (!orderId.trim()) {
-      setError("Please enter the order ID.");
-      return;
-    }
-
     try {
       setSubmitting(true);
 
       const complaint = await createComplaint({
         subject: subject.trim(),
         description: description.trim(),
-        order_id: orderId.trim(),
+        order_id: orderId,
       });
 
       setComplaints((current) => [complaint, ...current]);
@@ -118,14 +129,14 @@ export default function ComplaintsContent() {
   }
 
   return (
-    <main className="flex-1 p-8">
+    <main className="flex-1 p-8 text-black">
       <div className="mx-auto max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-black">
             Complaints
           </h1>
 
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-black">
             Submit and track your complaints.
           </p>
         </div>
@@ -143,7 +154,7 @@ export default function ComplaintsContent() {
         )}
 
         <section className="mb-10 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-5 text-xl font-semibold text-gray-900">
+          <h2 className="mb-5 text-xl font-semibold text-black">
             Submit a Complaint
           </h2>
 
@@ -151,31 +162,45 @@ export default function ComplaintsContent() {
             <div>
               <label
                 htmlFor="orderId"
-                className="mb-2 block text-sm font-medium text-gray-700"
+                className="mb-2 block text-sm font-medium text-black"
               >
-                Order ID
+                Select Order
               </label>
 
-              <input
+              <select
                 id="orderId"
-                type="text"
                 value={orderId}
-                onChange={(event) =>
-                  setOrderId(event.target.value)
-                }
-                placeholder="Enter your order ID"
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
+                onChange={(event) => setOrderId(event.target.value)}
+                disabled={loadingOrders || submitting}
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-black outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
+              >
+                <option value="">
+                  {loadingOrders
+                    ? "Loading your orders..."
+                    : "Select an order"}
+                </option>
 
-              <p className="mt-1 text-xs text-gray-500">
-                You can find the order ID on your order details page.
-              </p>
+                {orders.map((order) => (
+                  <option key={order.id} value={order.id}>
+                    {order.order_number} — ₹
+                    {Number(order.total_amount).toLocaleString(
+                      "en-IN"
+                    )}
+                  </option>
+                ))}
+              </select>
+
+              {!loadingOrders && orders.length === 0 && (
+                <p className="mt-2 text-sm text-black">
+                  You don't have any orders yet.
+                </p>
+              )}
             </div>
 
             <div>
               <label
                 htmlFor="subject"
-                className="mb-2 block text-sm font-medium text-gray-700"
+                className="mb-2 block text-sm font-medium text-black"
               >
                 Subject
               </label>
@@ -189,14 +214,14 @@ export default function ComplaintsContent() {
                 }
                 placeholder="What is your complaint about?"
                 maxLength={255}
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-black placeholder:text-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
 
             <div>
               <label
                 htmlFor="description"
-                className="mb-2 block text-sm font-medium text-gray-700"
+                className="mb-2 block text-sm font-medium text-black"
               >
                 Description
               </label>
@@ -209,13 +234,17 @@ export default function ComplaintsContent() {
                 }
                 placeholder="Describe your issue in detail..."
                 rows={5}
-                className="w-full resize-none rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="w-full resize-none rounded-lg border border-gray-300 bg-white px-4 py-3 text-black placeholder:text-gray-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
 
             <button
               type="submit"
-              disabled={submitting}
+              disabled={
+                submitting ||
+                loadingOrders ||
+                orders.length === 0
+              }
               className="rounded-lg bg-blue-600 px-6 py-3 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting
@@ -227,11 +256,11 @@ export default function ComplaintsContent() {
 
         <section>
           <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-black">
               My Complaints
             </h2>
 
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-black">
               {complaints.length}{" "}
               {complaints.length === 1
                 ? "complaint"
@@ -241,7 +270,7 @@ export default function ComplaintsContent() {
 
           {loading ? (
             <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
-              <p className="text-gray-600">
+              <p className="text-black">
                 Loading complaints...
               </p>
             </div>
@@ -249,11 +278,11 @@ export default function ComplaintsContent() {
             <div className="rounded-xl border border-gray-200 bg-white p-10 text-center shadow-sm">
               <div className="mb-4 text-5xl">📩</div>
 
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-black">
                 No complaints yet
               </h3>
 
-              <p className="mt-2 text-gray-600">
+              <p className="mt-2 text-black">
                 Your submitted complaints will appear here.
               </p>
             </div>
@@ -266,11 +295,11 @@ export default function ComplaintsContent() {
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <h3 className="text-lg font-semibold text-black">
                         {complaint.subject}
                       </h3>
 
-                      <p className="mt-1 text-sm text-gray-500">
+                      <p className="mt-1 text-sm text-black">
                         Order: {complaint.order_id}
                       </p>
                     </div>
@@ -284,23 +313,23 @@ export default function ComplaintsContent() {
                     </span>
                   </div>
 
-                  <p className="mt-4 whitespace-pre-wrap text-gray-700">
+                  <p className="mt-4 whitespace-pre-wrap text-black">
                     {complaint.description}
                   </p>
 
                   {complaint.admin_response && (
                     <div className="mt-5 rounded-lg bg-gray-50 p-4">
-                      <p className="text-sm font-semibold text-gray-800">
+                      <p className="text-sm font-semibold text-black">
                         Admin Response
                       </p>
 
-                      <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">
+                      <p className="mt-2 whitespace-pre-wrap text-sm text-black">
                         {complaint.admin_response}
                       </p>
                     </div>
                   )}
 
-                  <div className="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-4 text-sm text-gray-500 sm:flex-row sm:justify-between">
+                  <div className="mt-5 flex flex-col gap-3 border-t border-gray-100 pt-4 text-sm text-black sm:flex-row sm:justify-between">
                     <span>
                       Submitted:{" "}
                       {new Date(

@@ -1,5 +1,5 @@
 import { Category, Product, ProductDetail } from "./types";
-
+export type { Product, ProductDetail, Category };
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -180,7 +180,7 @@ export interface Cart {
   total_amount: number;
 }
 
-function getAuthToken(): string {
+export function getAuthToken(): string {
   const token = localStorage.getItem("access_token");
 
   if (!token) {
@@ -466,6 +466,163 @@ export async function createComplaint(
   const token = getAuthToken();
 
   return apiRequest<Complaint>("/complaints", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+}
+
+export interface AdminDashboardStats {
+  total_products: number;
+  active_products: number;
+  inactive_products: number;
+  total_orders: number;
+  pending_orders: number;
+  total_customers: number;
+  total_revenue: number;
+  low_stock_products: number;
+}
+
+export interface AdminRecentOrder {
+  id: string;
+  order_number: string;
+  user_id: string;
+  status: string;
+  total_amount: number;
+  created_at: string;
+}
+
+export interface AdminDashboardResponse {
+  customers: {
+    total: number;
+  };
+
+  products: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
+
+  orders: {
+    total: number;
+    pending: number;
+    confirmed: number;
+    processing: number;
+    shipped: number;
+    delivered: number;
+    cancelled: number;
+    returned: number;
+  };
+
+  revenue: {
+    total: number;
+    today: number;
+    this_month: number;
+    previous_month: number;
+  };
+
+  complaints: {
+    total: number;
+    open: number;
+    in_progress: number;
+    resolved: number;
+    closed: number;
+  };
+
+  inventory: {
+    total_units: number;
+    low_stock_products: number;
+    out_of_stock_products: number;
+    expiring_batches_30_days: number;
+  };
+}
+
+export async function getAdminDashboard(): Promise<AdminDashboardResponse> {
+  const token = getAuthToken();
+
+  return apiRequest<AdminDashboardResponse>("/admin/dashboard", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export async function getAdminProducts(): Promise<Product[]> {
+  const token = getAuthToken();
+
+  return apiRequest<Product[]>("/products", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export async function deleteAdminProduct(productId: string): Promise<void> {
+  const token = getAuthToken();
+
+  await apiRequest(
+    `/products/admin/${encodeURIComponent(productId)}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+}
+
+export async function updateProductStatus(
+  productId: string,
+  productStatus: string
+): Promise<Product> {
+  const token = getAuthToken();
+
+  return apiRequest<Product>(
+    `/products/admin/${encodeURIComponent(
+      productId
+    )}/status?product_status=${encodeURIComponent(
+      productStatus
+    )}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+}
+
+export interface CreateProductData {
+  name: string;
+  slug: string;
+  sku: string;
+  category_id: string;
+  brand_id?: string | null;
+  product_type: string;
+  short_description?: string | null;
+  description?: string | null;
+  mrp: number;
+  selling_price: number;
+  manufacturer?: string | null;
+  country_of_origin?: string | null;
+  is_disposable: boolean;
+  is_sterile?: boolean | null;
+  is_single_use?: boolean | null;
+  expiry_required: boolean;
+  batch_tracking_required: boolean;
+  warranty_months?: number | null;
+  reorder_level: number;
+  weight_grams?: number | null;
+}
+
+export async function createAdminProduct(
+  data: CreateProductData
+): Promise<Product> {
+  const token = getAuthToken();
+
+  return apiRequest<Product>("/products/admin", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,

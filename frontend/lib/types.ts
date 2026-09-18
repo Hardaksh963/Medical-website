@@ -19,6 +19,7 @@ export interface Product {
   status: string;
 
   category_id: string | null;
+  product_type: string;
   brand_id: string | null;
 
   category?: {
