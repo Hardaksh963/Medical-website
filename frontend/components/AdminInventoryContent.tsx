@@ -10,6 +10,7 @@ import {
   createInventoryBatch,
   adjustInventory,
   getInventoryMovements,
+  getLowStockProducts,
 } from "@/lib/api";
 
 import type { Product } from "@/lib/types";
@@ -32,6 +33,13 @@ interface InventoryMovement {
   movement_type: string;
   reason: string | null;
   created_at: string;
+}
+
+interface LowStockProduct {
+  product_id: string;
+  product_name: string;
+  current_stock: number;
+  reorder_level: number;
 }
 
 export default function AdminInventoryContent() {
@@ -58,8 +66,12 @@ export default function AdminInventoryContent() {
   // Adjustment form
   const [selectedBatchId, setSelectedBatchId] = useState("");
   const [adjustmentQuantity, setAdjustmentQuantity] = useState("");
-  const [movementType, setMovementType] = useState("ADJUSTMENT");
+  const [movementType, setMovementType] = useState("STOCK_IN");
   const [adjustmentReason, setAdjustmentReason] = useState("");
+
+  const [lowStockProducts, setLowStockProducts] = useState<
+    LowStockProduct[]
+  >([]);
 
   useEffect(() => {
     loadProducts();
@@ -77,13 +89,17 @@ export default function AdminInventoryContent() {
       setLoading(true);
       setError("");
 
-      const data = await getAdminProducts();
+      const [productData, lowStockData] = await Promise.all([
+        getAdminProducts(),
+        getLowStockProducts(),
+        ]);
 
-      setProducts(data);
+        setProducts(productData);
+        setLowStockProducts(lowStockData);
 
-      if (data.length > 0) {
-        setSelectedProductId(data[0].id);
-      }
+        if (productData.length > 0) {
+        setSelectedProductId(productData[0].id);
+        }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to load products";
@@ -270,6 +286,88 @@ export default function AdminInventoryContent() {
             {success}
           </div>
         )}
+
+        {/* Low Stock Alert */}
+        <div className="mb-6 rounded-xl bg-white p-6 shadow">
+        <div className="mb-4 flex items-center justify-between">
+            <div>
+            <h2 className="text-xl font-bold text-black">
+                Low Stock Products
+            </h2>
+
+            <p className="mt-1 text-sm text-gray-600">
+                Products at or below their reorder level.
+            </p>
+            </div>
+
+            <span className="rounded-full bg-yellow-100 px-3 py-1 text-sm font-semibold text-yellow-800">
+            {lowStockProducts.length}
+            </span>
+        </div>
+
+        {lowStockProducts.length === 0 ? (
+            <p className="text-gray-600">
+            No products are currently low on stock.
+            </p>
+        ) : (
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[500px]">
+                <thead>
+                <tr className="border-b text-left">
+                    <th className="p-3 text-sm text-gray-600">
+                    Product
+                    </th>
+
+                    <th className="p-3 text-sm text-gray-600">
+                    Current Stock
+                    </th>
+
+                    <th className="p-3 text-sm text-gray-600">
+                    Reorder Level
+                    </th>
+
+                    <th className="p-3 text-sm text-gray-600">
+                    Action
+                    </th>
+                </tr>
+                </thead>
+
+                <tbody>
+                {lowStockProducts.map((product) => (
+                    <tr
+                    key={product.product_id}
+                    className="border-b last:border-0"
+                    >
+                    <td className="p-3 font-medium text-black">
+                        {product.product_name}
+                    </td>
+
+                    <td className="p-3 font-semibold text-red-600">
+                        {product.current_stock}
+                    </td>
+
+                    <td className="p-3 text-black">
+                        {product.reorder_level}
+                    </td>
+
+                    <td className="p-3">
+                        <button
+                        type="button"
+                        onClick={() =>
+                            setSelectedProductId(product.product_id)
+                        }
+                        className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800"
+                        >
+                        Manage Stock
+                        </button>
+                    </td>
+                    </tr>
+                ))}
+                </tbody>
+            </table>
+            </div>
+        )}
+        </div>
 
         {/* Product selector */}
         <div className="mb-6 rounded-xl bg-white p-6 shadow">
@@ -563,24 +661,28 @@ export default function AdminInventoryContent() {
                         }
                         className="w-full rounded-lg border border-gray-300 px-4 py-3 text-black"
                       >
+                        <option value="STOCK_IN">
+                            Stock In
+                        </option>
+
+                        <option value="STOCK_OUT">
+                            Stock Out
+                        </option>
+
                         <option value="ADJUSTMENT">
-                          Adjustment
+                            Set Stock Quantity
                         </option>
 
-                        <option value="ADD">
-                          Add Stock
-                        </option>
-
-                        <option value="REMOVE">
-                          Remove Stock
+                        <option value="RETURN">
+                            Return
                         </option>
 
                         <option value="DAMAGED">
-                          Damaged
+                            Damaged
                         </option>
 
                         <option value="EXPIRED">
-                          Expired
+                            Expired
                         </option>
                       </select>
                     </div>

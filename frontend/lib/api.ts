@@ -757,10 +757,203 @@ export async function getInventoryMovements(
   );
 }
 
-export async function getLowStockProducts(): Promise<Product[]> {
+export interface LowStockProduct {
+  product_id: string;
+  product_name: string;
+  current_stock: number;
+  reorder_level: number;
+}
+
+export async function getLowStockProducts(): Promise<LowStockProduct[]> {
   const token = getAuthToken();
 
-  return apiRequest<Product[]>("/inventory/admin/low-stock", {
+  return apiRequest<LowStockProduct[]>(
+    "/inventory/admin/low-stock",
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+}
+
+export interface AdminOrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+}
+
+export interface AdminOrder {
+  id: string;
+  user_id: string;
+  order_number: string;
+  status: string;
+  subtotal: number;
+  shipping_cost: number;
+  total_amount: number;
+  created_at: string;
+  items?: AdminOrderItem[];
+}
+
+export interface OrderStatusUpdateData {
+  status: string;
+}
+
+export async function getAdminOrders(): Promise<AdminOrder[]> {
+  const token = getAuthToken();
+
+  return apiRequest<AdminOrder[]>("/orders/admin", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export async function getAdminOrder(
+  orderId: string
+): Promise<AdminOrder> {
+  const token = getAuthToken();
+
+  return apiRequest<AdminOrder>(
+    `/orders/admin/${encodeURIComponent(orderId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+}
+
+export async function updateAdminOrderStatus(
+  orderId: string,
+  status: string
+): Promise<AdminOrder> {
+  const token = getAuthToken();
+
+  return apiRequest<AdminOrder>(
+    `/orders/admin/${encodeURIComponent(orderId)}/status`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        status,
+      }),
+    }
+  );
+}
+
+export async function getAdminComplaints(): Promise<Complaint[]> {
+  const token = getAuthToken();
+
+  return apiRequest<Complaint[]>("/complaints/admin", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export async function updateAdminComplaint(
+  complaintId: string,
+  status: string,
+  adminResponse: string
+): Promise<Complaint> {
+  const token = getAuthToken();
+
+  return apiRequest<Complaint>(
+    `/complaints/admin/${encodeURIComponent(complaintId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        status,
+        admin_response: adminResponse,
+      }),
+    }
+  );
+}
+
+export async function getAdminComplaint(
+  complaintId: string
+): Promise<Complaint> {
+  const token = getAuthToken();
+
+  return apiRequest<Complaint>(
+    `/complaints/admin/${encodeURIComponent(complaintId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+}
+
+// ==================== Notifications ====================
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  notification_type: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export async function getNotifications(): Promise<Notification[]> {
+  const token = getAuthToken();
+
+  return apiRequest<Notification[]>("/notifications", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export async function getUnreadNotificationCount(): Promise<number> {
+  const token = getAuthToken();
+
+  const data = await apiRequest<{ unread_count: number }>(
+    "/notifications/unread-count",
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return data.unread_count;
+}
+
+export async function markNotificationAsRead(
+  notificationId: string
+): Promise<Notification> {
+  const token = getAuthToken();
+
+  return apiRequest<Notification>(
+    `/notifications/${encodeURIComponent(notificationId)}/read`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+}
+
+export async function markAllNotificationsAsRead(): Promise<{
+  message: string;
+}> {
+  const token = getAuthToken();
+
+  return apiRequest<{ message: string }>("/notifications/read-all", {
+    method: "PATCH",
     headers: {
       Authorization: `Bearer ${token}`,
     },
