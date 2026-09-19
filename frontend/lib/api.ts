@@ -959,3 +959,108 @@ export async function markAllNotificationsAsRead(): Promise<{
     },
   });
 }
+
+// ==================== Reviews ====================
+
+export interface Review {
+  id: string;
+  product_id: string;
+  user_id: string;
+  order_id: string;
+  rating: number;
+  comment: string | null;
+  is_approved: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewSummary {
+  average_rating: number;
+  review_count: number;
+}
+
+export interface CreateReviewData {
+  product_id: string;
+  order_id: string;
+  rating: number;
+  comment?: string;
+}
+
+export interface UpdateReviewData {
+  rating: number;
+  comment?: string;
+}
+
+export async function getProductReviews(
+  productId: string
+): Promise<Review[]> {
+  return apiRequest<Review[]>(
+    `/reviews/product/${encodeURIComponent(productId)}`
+  );
+}
+
+export async function getProductReviewSummary(
+  productId: string
+): Promise<ReviewSummary> {
+  return apiRequest<ReviewSummary>(
+    `/reviews/product/${encodeURIComponent(productId)}/summary`
+  );
+}
+
+export async function getMyReviews(): Promise<Review[]> {
+  const token = getAuthToken();
+
+  return apiRequest<Review[]>("/reviews/my", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export async function createReview(
+  data: CreateReviewData
+): Promise<Review> {
+  const token = getAuthToken();
+
+  return apiRequest<Review>("/reviews", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateReview(
+  reviewId: string,
+  data: UpdateReviewData
+): Promise<Review> {
+  const token = getAuthToken();
+
+  return apiRequest<Review>(
+    `/reviews/${encodeURIComponent(reviewId)}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    }
+  );
+}
+
+export async function deleteReview(
+  reviewId: string
+): Promise<{ message: string }> {
+  const token = getAuthToken();
+
+  return apiRequest<{ message: string }>(
+    `/reviews/${encodeURIComponent(reviewId)}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+}

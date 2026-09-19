@@ -3,6 +3,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import ProductDetailActions from "@/components/ProductDetailActions";
+import ProductReviews from "@/components/ProductReviews";
 import { getProductDetails } from "@/lib/api";
 
 interface ProductDetailPageProps {
@@ -187,6 +188,9 @@ export default async function ProductDetailPage({
                 </div>
               </div>
             </div>
+
+            {/* Customer Reviews */}
+            <ProductReviews productId={product.id} />
           </div>
         </main>
       </div>

@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
-import { getCurrentUser, CurrentUser } from "@/lib/api";
+import {
+  getCurrentUser,
+  getUnreadNotificationCount,
+  CurrentUser,
+} from "@/lib/api";
 
 export default function Navbar() {
   const router = useRouter();
@@ -12,6 +16,7 @@ export default function Navbar() {
   const [search, setSearch] = useState("");
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     async function checkAuthentication() {
@@ -25,11 +30,23 @@ export default function Navbar() {
       try {
         const currentUser = await getCurrentUser(token);
         setUser(currentUser);
+
+        try {
+          const unreadCount = await getUnreadNotificationCount();
+          setUnreadNotifications(unreadCount);
+        } catch (notificationError) {
+          console.error(
+            "Failed to load notification count:",
+            notificationError
+          );
+          setUnreadNotifications(0);
+        }
       } catch (error) {
         console.error("Authentication check failed:", error);
 
         localStorage.removeItem("access_token");
         setUser(null);
+        setUnreadNotifications(0);
       } finally {
         setLoadingUser(false);
       }
@@ -55,6 +72,7 @@ export default function Navbar() {
     localStorage.removeItem("access_token");
 
     setUser(null);
+    setUnreadNotifications(0);
 
     router.push("/");
   }
@@ -115,6 +133,23 @@ export default function Navbar() {
                 className="font-medium text-gray-700 hover:text-blue-600"
               >
                 Orders
+              </Link>
+
+              {/* Notifications */}
+              <Link
+                href="/notifications"
+                className="relative rounded-lg px-2 py-2 text-gray-700 hover:bg-gray-100"
+                aria-label="Notifications"
+              >
+                <span className="text-lg">🔔</span>
+
+                {unreadNotifications > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                    {unreadNotifications > 99
+                      ? "99+"
+                      : unreadNotifications}
+                  </span>
+                )}
               </Link>
 
               <Link
