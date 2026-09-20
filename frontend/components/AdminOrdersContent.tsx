@@ -139,18 +139,23 @@ export default function AdminOrdersContent() {
   const orderCounts = useMemo(() => {
     return {
       total: orders.length,
+
       pending: orders.filter(
         (order) => order.status === "PENDING"
       ).length,
+
       processing: orders.filter(
         (order) => order.status === "PROCESSING"
       ).length,
+
       shipped: orders.filter(
         (order) => order.status === "SHIPPED"
       ).length,
+
       delivered: orders.filter(
         (order) => order.status === "DELIVERED"
       ).length,
+
       cancelled: orders.filter(
         (order) => order.status === "CANCELLED"
       ).length,
@@ -188,7 +193,9 @@ export default function AdminOrdersContent() {
   if (loading) {
     return (
       <main className="flex-1 p-8">
-        <p className="text-black">Loading orders...</p>
+        <p className="text-black">
+          Loading orders...
+        </p>
       </main>
     );
   }
@@ -228,6 +235,7 @@ export default function AdminOrdersContent() {
             <p className="text-sm text-gray-600">
               Total
             </p>
+
             <p className="mt-2 text-2xl font-bold text-black">
               {orderCounts.total}
             </p>
@@ -237,6 +245,7 @@ export default function AdminOrdersContent() {
             <p className="text-sm text-gray-600">
               Pending
             </p>
+
             <p className="mt-2 text-2xl font-bold text-black">
               {orderCounts.pending}
             </p>
@@ -246,6 +255,7 @@ export default function AdminOrdersContent() {
             <p className="text-sm text-gray-600">
               Processing
             </p>
+
             <p className="mt-2 text-2xl font-bold text-black">
               {orderCounts.processing}
             </p>
@@ -255,6 +265,7 @@ export default function AdminOrdersContent() {
             <p className="text-sm text-gray-600">
               Shipped
             </p>
+
             <p className="mt-2 text-2xl font-bold text-black">
               {orderCounts.shipped}
             </p>
@@ -264,6 +275,7 @@ export default function AdminOrdersContent() {
             <p className="text-sm text-gray-600">
               Delivered
             </p>
+
             <p className="mt-2 text-2xl font-bold text-black">
               {orderCounts.delivered}
             </p>
@@ -273,6 +285,7 @@ export default function AdminOrdersContent() {
             <p className="text-sm text-gray-600">
               Cancelled
             </p>
+
             <p className="mt-2 text-2xl font-bold text-black">
               {orderCounts.cancelled}
             </p>
@@ -291,7 +304,9 @@ export default function AdminOrdersContent() {
 
               <input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) =>
+                  setSearch(e.target.value)
+                }
                 placeholder="Search order number or customer ID"
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-black"
               />
@@ -349,10 +364,11 @@ export default function AdminOrdersContent() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1000px]">
+              <table className="w-full min-w-[1100px]">
 
                 <thead>
                   <tr className="border-b text-left">
+
                     <th className="p-4 text-sm text-gray-600">
                       Order
                     </th>
@@ -380,6 +396,7 @@ export default function AdminOrdersContent() {
                     <th className="p-4 text-sm text-gray-600">
                       Action
                     </th>
+
                   </tr>
                 </thead>
 
@@ -389,6 +406,8 @@ export default function AdminOrdersContent() {
                       key={order.id}
                       className="border-b last:border-0"
                     >
+
+                      {/* Order */}
                       <td className="p-4">
                         <button
                           type="button"
@@ -402,31 +421,58 @@ export default function AdminOrdersContent() {
                           {order.order_number}
                         </button>
                       </td>
-                          
+
+                      {/* Customer */}
                       <td className="p-4">
                         <span className="text-sm text-black">
                           {order.user_id}
                         </span>
                       </td>
 
+                      {/* Date */}
                       <td className="p-4 text-sm text-black">
                         {new Date(
                           order.created_at
                         ).toLocaleString()}
                       </td>
 
-                      <div>
-                        <p className="font-medium text-gray-900">
-                            {item.product_name || "Product no longer available"}
-                        </p>
-                        </div>
+                      {/* Items */}
+                      <td className="p-4">
+                        {order.items &&
+                        order.items.length > 0 ? (
+                          <div className="space-y-2">
+                            {order.items.map((item) => (
+                              <div
+                                key={item.id}
+                                className="min-w-[220px]"
+                              >
+                                <p className="font-medium text-black">
+                                  {item.product_name ||
+                                    "Product no longer available"}
+                                </p>
 
-                      <td className="p-4 font-semibold text-black">
-                        ₹{Number(order.total_amount).toLocaleString(
-                          "en-IN"
+                                <p className="mt-1 text-xs text-gray-600">
+                                  Qty: {item.quantity}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-500">
+                            No items
+                          </span>
                         )}
                       </td>
 
+                      {/* Total */}
+                      <td className="p-4 font-semibold text-black">
+                        ₹
+                        {Number(
+                          order.total_amount
+                        ).toLocaleString("en-IN")}
+                      </td>
+
+                      {/* Status */}
                       <td className="p-4">
                         <span
                           className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClass(
@@ -437,6 +483,7 @@ export default function AdminOrdersContent() {
                         </span>
                       </td>
 
+                      {/* Action */}
                       <td className="p-4">
                         <select
                           value={order.status}
@@ -463,6 +510,7 @@ export default function AdminOrdersContent() {
                           )}
                         </select>
                       </td>
+
                     </tr>
                   ))}
                 </tbody>

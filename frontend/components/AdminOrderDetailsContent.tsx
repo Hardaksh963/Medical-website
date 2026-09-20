@@ -321,15 +321,6 @@ export default function AdminOrderDetailsContent({ orderId }: Props) {
                         <p className="font-medium text-gray-900">
                             {item.product_name || "Product no longer available"}
                         </p>
-
-                        <p className="mt-1 text-sm text-gray-500">
-                            Quantity: {item.quantity}
-                        </p>
-
-                        <p className="mt-1 text-sm text-gray-500">
-                            Unit Price: ₹
-                            {Number(item.unit_price).toLocaleString("en-IN")}
-                        </p>
                         </div>
                         </td>
                       <td className="px-6 py-4 text-black">
