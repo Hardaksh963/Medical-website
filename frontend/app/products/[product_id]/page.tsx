@@ -5,6 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import ProductDetailActions from "@/components/ProductDetailActions";
 import ProductReviews from "@/components/ProductReviews";
 import { getProductDetails } from "@/lib/api";
+import ProductGallery from "@/components/ProductGallery";
 
 interface ProductDetailPageProps {
   params: Promise<{

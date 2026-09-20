@@ -1,18 +1,33 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import {
   createReview,
   getAuthToken,
+  getOrders,
   getMyReviews,
-  getProductReviewSummary,
   getProductReviews,
+  getProductReviewSummary,
   Review,
   ReviewSummary,
 } from "@/lib/api";
 
 interface ProductReviewsProps {
   productId: string;
+}
+
+interface EligibleOrder {
+  id: string;
+  order_number: string;
+  status: string;
+  created_at: string;
+  items?: {
+    product_id: string;
+    quantity: number;
+    unit_price: number;
+    subtotal: number;
+  }[];
 }
 
 export default function ProductReviews({
@@ -24,12 +39,16 @@ export default function ProductReviews({
     review_count: 0,
   });
 
+  const [eligibleOrders, setEligibleOrders] = useState<EligibleOrder[]>([]);
+  const [selectedOrderId, setSelectedOrderId] = useState("");
+
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
-  const [orderId, setOrderId] = useState("");
 
   const [loading, setLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -55,35 +74,87 @@ export default function ProductReviews({
 
       const token = getAuthToken();
 
-      if (token) {
-        setLoggedIn(true);
-
-        try {
-          const myReviews = await getMyReviews();
-
-          const existingReview = myReviews.find(
-            (review) => review.product_id === productId
-          );
-
-          if (existingReview) {
-            setHasReviewed(true);
-          }
-        } catch {
-          setHasReviewed(false);
-        }
-      } else {
+      if (!token) {
         setLoggedIn(false);
+        setEligibleOrders([]);
+        setSelectedOrderId("");
+        return;
       }
-    } catch (err) {
-      console.error("Failed to load reviews:", err);
 
+      setLoggedIn(true);
+
+      await loadCustomerReviewData();
+    } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Failed to load reviews."
+          : "Failed to load product reviews."
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadCustomerReviewData() {
+    try {
+      setOrdersLoading(true);
+
+      const [myReviews, myOrders] = await Promise.all([
+        getMyReviews(),
+        getOrders(),
+      ]);
+
+      // Check whether the customer has already reviewed this product.
+      const existingReview = myReviews.find(
+        (review) => review.product_id === productId
+      );
+
+      setHasReviewed(Boolean(existingReview));
+
+      if (existingReview) {
+        setEligibleOrders([]);
+        setSelectedOrderId("");
+        return;
+      }
+
+      /*
+       * Find customer's orders containing this product.
+       *
+       * Cancelled and returned orders are not considered eligible
+       * for submitting a product review.
+       */
+      const eligible = (myOrders as EligibleOrder[]).filter((order) => {
+        const status = order.status?.toUpperCase();
+
+        if (status === "CANCELLED" || status === "RETURNED") {
+          return false;
+        }
+
+        return (
+          order.items?.some(
+            (item) => item.product_id === productId
+          ) ?? false
+        );
+      });
+
+      setEligibleOrders(eligible);
+
+      // Automatically select the first eligible order.
+      if (eligible.length > 0) {
+        setSelectedOrderId(eligible[0].id);
+      } else {
+        setSelectedOrderId("");
+      }
+    } catch (err) {
+      setEligibleOrders([]);
+      setSelectedOrderId("");
+
+      console.error(
+        "Failed to load customer review data:",
+        err
+      );
+    } finally {
+      setOrdersLoading(false);
     }
   }
 
@@ -93,8 +164,10 @@ export default function ProductReviews({
       return;
     }
 
-    if (!orderId.trim()) {
-      setError("Please enter the order ID for this purchase.");
+    if (!selectedOrderId) {
+      setError(
+        "You need an eligible order containing this product to submit a review."
+      );
       return;
     }
 
@@ -110,21 +183,21 @@ export default function ProductReviews({
 
       await createReview({
         product_id: productId,
-        order_id: orderId.trim(),
+        order_id: selectedOrderId,
         rating,
         comment: comment.trim(),
       });
 
       setMessage("Review submitted successfully.");
+
       setComment("");
-      setOrderId("");
       setRating(5);
+      setSelectedOrderId("");
       setHasReviewed(true);
+      setEligibleOrders([]);
 
       await loadReviews();
     } catch (err) {
-      console.error("Failed to submit review:", err);
-
       setError(
         err instanceof Error
           ? err.message
@@ -136,11 +209,16 @@ export default function ProductReviews({
   }
 
   function renderStars(value: number) {
+    const rounded = Math.max(
+      0,
+      Math.min(5, Math.round(value))
+    );
+
     return (
       <span className="text-yellow-500">
-        {"★".repeat(Math.round(value))}
+        {"★".repeat(rounded)}
         <span className="text-gray-300">
-          {"★".repeat(5 - Math.round(value))}
+          {"★".repeat(5 - rounded)}
         </span>
       </span>
     );
@@ -148,12 +226,8 @@ export default function ProductReviews({
 
   if (loading) {
     return (
-      <section className="mt-10 border-t pt-8">
-        <h2 className="text-xl font-bold text-gray-900">
-          Customer Reviews
-        </h2>
-
-        <p className="mt-4 text-sm text-gray-500">
+      <section className="mt-8 rounded-2xl border bg-white p-6">
+        <p className="text-black">
           Loading reviews...
         </p>
       </section>
@@ -161,168 +235,195 @@ export default function ProductReviews({
   }
 
   return (
-    <section className="mt-10 border-t pt-8">
+    <section className="mt-8 rounded-2xl border bg-white p-6">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-black">
+          Customer Reviews
+        </h2>
 
-      {/* Summary */}
-      <div className="flex flex-col gap-6 rounded-xl border bg-white p-6 sm:flex-row sm:items-center">
+        <div className="mt-2 flex items-center gap-3">
+          <span className="text-2xl font-semibold">
+            {Number(summary.average_rating).toFixed(1)}
+          </span>
 
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">
-            Customer Reviews
-          </h2>
+          <span className="text-lg">
+            {renderStars(summary.average_rating)}
+          </span>
 
-          <div className="mt-3 flex items-center gap-3">
-            <span className="text-3xl font-bold text-gray-900">
-              {summary.average_rating.toFixed(1)}
-            </span>
-
-            <div>
-              <div className="text-lg">
-                {renderStars(summary.average_rating)}
-              </div>
-
-              <p className="text-sm text-gray-500">
-                {summary.review_count}{" "}
-                {summary.review_count === 1
-                  ? "review"
-                  : "reviews"}
-              </p>
-            </div>
-          </div>
+          <span className="text-sm text-black">
+            ({summary.review_count}{" "}
+            {summary.review_count === 1
+              ? "review"
+              : "reviews"})
+          </span>
         </div>
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {/* Review submission */}
+      <div className="mb-8 rounded-xl border bg-gray-50 p-5">
+        <h3 className="mb-4 text-black font-semibold">
+          Write a Review
+        </h3>
 
-      {/* Success */}
-      {message && (
-        <div className="mt-5 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
-          {message}
-        </div>
-      )}
-
-      {/* Review form */}
-      {loggedIn && !hasReviewed && (
-        <div className="mt-6 rounded-xl border bg-white p-6">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Write a Review
-          </h3>
-
-          <div className="mt-5">
-            <label className="block text-sm font-medium text-gray-700">
-              Rating
-            </label>
-
-            <select
-              value={rating}
-              onChange={(e) => setRating(Number(e.target.value))}
-              className="mt-2 rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
-            >
-              <option value={5}>★★★★★ - 5</option>
-              <option value={4}>★★★★☆ - 4</option>
-              <option value={3}>★★★☆☆ - 3</option>
-              <option value={2}>★★☆☆☆ - 2</option>
-              <option value={1}>★☆☆☆☆ - 1</option>
-            </select>
-          </div>
-
-          <div className="mt-5">
-            <label className="block text-sm font-medium text-gray-700">
-              Order ID
-            </label>
-
-            <input
-              type="text"
-              value={orderId}
-              onChange={(e) => setOrderId(e.target.value)}
-              placeholder="Enter the order ID containing this product"
-              className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            />
-
-            <p className="mt-1 text-xs text-gray-500">
-              You can find the order ID in My Orders.
-            </p>
-          </div>
-
-          <div className="mt-5">
-            <label className="block text-sm font-medium text-gray-700">
-              Review
-            </label>
-
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={4}
-              placeholder="Share your experience with this product..."
-              className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={handleSubmitReview}
-            disabled={submitting}
-            className="mt-5 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-          >
-            {submitting ? "Submitting..." : "Submit Review"}
-          </button>
-        </div>
-      )}
-
-      {/* Login message */}
-      {!loggedIn && (
-        <div className="mt-6 rounded-xl border bg-gray-50 p-5">
-          <p className="text-sm text-gray-600">
-            Login to write a review for this product.
+        {!loggedIn ? (
+          <p className="text-sm text-black">
+            Please login to submit a review.
           </p>
-        </div>
-      )}
-
-      {/* Already reviewed */}
-      {loggedIn && hasReviewed && (
-        <div className="mt-6 rounded-xl border bg-gray-50 p-5">
-          <p className="text-sm text-gray-600">
+        ) : hasReviewed ? (
+          <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
             You have already reviewed this product.
-          </p>
-        </div>
-      )}
-
-      {/* Reviews */}
-      <div className="mt-8">
-        {reviews.length === 0 ? (
-          <div className="rounded-xl border bg-white p-8 text-center">
-            <p className="text-gray-500">
-              No reviews yet. Be the first to review this product.
-            </p>
           </div>
+        ) : ordersLoading ? (
+          <p className="text-sm text-black">
+            Checking your orders...
+          </p>
+        ) : eligibleOrders.length === 0 ? (
+          <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+            You need to purchase this product before you can
+            submit a review.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Order selection */}
+            <div>
+              <label
+                htmlFor="review-order"
+                className="mb-2 block text-sm font-medium text-black"
+              >
+                Select your order
+              </label>
+
+              <select
+                id="review-order"
+                value={selectedOrderId}
+                onChange={(event) =>
+                  setSelectedOrderId(event.target.value)
+                }
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-black outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="">
+                  Select an order
+                </option>
+
+                {eligibleOrders.map((order) => (
+                  <option key={order.id} value={order.id}>
+                    {order.order_number} —{" "}
+                    {new Date(
+                      order.created_at
+                    ).toLocaleDateString()}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Rating */}
+            <div>
+              <label
+                htmlFor="review-rating"
+                className="mb-2 block text-sm font-medium text-black"
+              >
+                Rating
+              </label>
+
+              <select
+                id="review-rating"
+                value={rating}
+                onChange={(event) =>
+                  setRating(Number(event.target.value))
+                }
+                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-black outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                <option value={5}>5 — Excellent</option>
+                <option value={4}>4 — Very Good</option>
+                <option value={3}>3 — Good</option>
+                <option value={2}>2 — Fair</option>
+                <option value={1}>1 — Poor</option>
+              </select>
+            </div>
+
+            {/* Comment */}
+            <div>
+              <label
+                htmlFor="review-comment"
+                className="mb-2 block text-sm font-medium text-black"
+              >
+                Your Review
+              </label>
+
+              <textarea
+                id="review-comment"
+                value={comment}
+                onChange={(event) =>
+                  setComment(event.target.value)
+                }
+                rows={4}
+                placeholder="Share your experience with this product..."
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-black outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSubmitReview}
+              disabled={submitting || !selectedOrderId}
+              className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {submitting
+                ? "Submitting..."
+                : "Submit Review"}
+            </button>
+          </div>
+        )}
+
+        {error && (
+          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {message && (
+          <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+            {message}
+          </div>
+        )}
+      </div>
+
+      {/* Existing reviews */}
+      <div>
+        <h3 className="mb-4 text-black font-semibold">
+          Reviews
+        </h3>
+
+        {reviews.length === 0 ? (
+          <p className="text-sm text-black">
+            No reviews yet. Be the first to review this
+            product.
+          </p>
         ) : (
           <div className="space-y-4">
             {reviews.map((review) => (
               <div
                 key={review.id}
-                className="rounded-xl border bg-white p-5"
+                className="border-b pb-4 last:border-b-0"
               >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <div className="text-lg">
-                      {renderStars(review.rating)}
-                    </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm font-medium text-black">
+                    Verified Customer
+                  </span>
 
-                    <p className="mt-1 text-xs text-gray-500">
-                      {new Date(
-                        review.created_at
-                      ).toLocaleDateString()}
-                    </p>
-                  </div>
+                  <span className="text-xs text-black">
+                    {new Date(
+                      review.created_at
+                    ).toLocaleDateString()}
+                  </span>
+                </div>
+
+                <div className="mt-1">
+                  {renderStars(review.rating)}
                 </div>
 
                 {review.comment && (
-                  <p className="mt-4 text-sm leading-6 text-gray-700">
+                  <p className="mt-2 text-sm leading-6 text-black">
                     {review.comment}
                   </p>
                 )}

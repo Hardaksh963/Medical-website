@@ -131,6 +131,19 @@ export default function OrdersContent() {
                     <h2 className="mt-1 text-lg font-semibold text-gray-900">
                       {order.order_number}
                     </h2>
+
+                    {order.items && order.items.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                        {order.items.map((item) => (
+                        <p
+                            key={item.id}
+                            className="text-sm text-black"
+                        >
+                            • {item.product_name || "Product"} × {item.quantity}
+                        </p>
+                        ))}
+                    </div>
+                    )}
                   </div>
 
                   <span

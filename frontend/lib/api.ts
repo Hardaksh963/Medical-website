@@ -280,8 +280,9 @@ export async function checkout(): Promise<CheckoutResponse> {
 
 export interface OrderItem {
   id: string;
-  order_id: string;
+  order_id?: string;
   product_id: string;
+  product_name?: string;
   quantity: number;
   unit_price: number;
   subtotal: number;
