@@ -782,6 +782,7 @@ export interface AdminOrderItem {
   id: string;
   order_id: string;
   product_id: string;
+  product_name?: string;
   quantity: number;
   unit_price: number;
   subtotal: number;
@@ -1059,6 +1060,21 @@ export async function deleteReview(
     `/reviews/${encodeURIComponent(reviewId)}`,
     {
       method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+}
+
+export async function getPurchasedProductDetails(
+  productId: string
+): Promise<ProductDetail> {
+  const token = getAuthToken();
+
+  return apiRequest<ProductDetail>(
+    `/products/${encodeURIComponent(productId)}/purchased`,
+    {
       headers: {
         Authorization: `Bearer ${token}`,
       },

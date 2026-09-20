@@ -127,7 +127,7 @@ export default function OrdersContent() {
                     <p className="text-sm text-gray-500">
                       Order Number
                     </p>
-
+                    
                     <h2 className="mt-1 text-lg font-semibold text-gray-900">
                       {order.order_number}
                     </h2>

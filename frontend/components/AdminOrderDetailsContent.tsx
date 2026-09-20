@@ -288,7 +288,9 @@ export default function AdminOrderDetailsContent({ orderId }: Props) {
                     <th className="px-6 py-4 font-semibold text-black">
                       Product ID
                     </th>
-
+                    <th className="px-6 py-4 font-semibold text-black">
+                      Product Name
+                    </th>
                     <th className="px-6 py-4 font-semibold text-black">
                       Quantity
                     </th>
@@ -314,7 +316,22 @@ export default function AdminOrderDetailsContent({ orderId }: Props) {
                           {item.product_id}
                         </span>
                       </td>
+                      <td className="px-6 py-4">
+                        <div>
+                        <p className="font-medium text-gray-900">
+                            {item.product_name || "Product no longer available"}
+                        </p>
 
+                        <p className="mt-1 text-sm text-gray-500">
+                            Quantity: {item.quantity}
+                        </p>
+
+                        <p className="mt-1 text-sm text-gray-500">
+                            Unit Price: ₹
+                            {Number(item.unit_price).toLocaleString("en-IN")}
+                        </p>
+                        </div>
+                        </td>
                       <td className="px-6 py-4 text-black">
                         {item.quantity}
                       </td>

@@ -242,12 +242,19 @@ export default function OrderDetailsContent({
                 className="flex flex-col justify-between gap-4 py-5 sm:flex-row sm:items-center"
               >
                 <div>
-                  <Link
-                    href={`/products/${item.product_id}`}
-                    className="font-medium text-gray-900 hover:text-blue-600"
-                  >
-                    View Product
-                  </Link>
+                  <div>
+                    <p className="font-medium text-gray-900">
+                        {item.product_name || "Product no longer available"}
+                    </p>
+
+                    <Link
+                        href={`/products/${item.product_id}`}
+                        className="mt-1 inline-block text-sm font-medium text-blue-600 hover:text-blue-700"
+                    >
+                        View Product
+                    </Link>
+
+                    </div>
 
                   <p className="mt-1 text-sm text-gray-500">
                     Quantity: {item.quantity}

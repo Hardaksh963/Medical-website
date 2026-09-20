@@ -402,7 +402,7 @@ export default function AdminOrdersContent() {
                           {order.order_number}
                         </button>
                       </td>
-
+                          
                       <td className="p-4">
                         <span className="text-sm text-black">
                           {order.user_id}
@@ -415,9 +415,11 @@ export default function AdminOrdersContent() {
                         ).toLocaleString()}
                       </td>
 
-                      <td className="p-4 text-black">
-                        {order.items?.length ?? "-"}
-                      </td>
+                      <div>
+                        <p className="font-medium text-gray-900">
+                            {item.product_name || "Product no longer available"}
+                        </p>
+                        </div>
 
                       <td className="p-4 font-semibold text-black">
                         ₹{Number(order.total_amount).toLocaleString(
