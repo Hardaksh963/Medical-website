@@ -1,5 +1,5 @@
 import Navbar from "@/components/Navbar";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/AdminSidebar";
 import AdminProductForm from "@/components/AdminProductForm";
 
 export default function NewAdminProductPage() {
@@ -8,7 +8,6 @@ export default function NewAdminProductPage() {
       <Navbar />
 
       <div className="flex">
-        <Sidebar />
         <AdminProductForm />
       </div>
     </div>

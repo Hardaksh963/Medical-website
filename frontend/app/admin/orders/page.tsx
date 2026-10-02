@@ -1,5 +1,5 @@
 import Navbar from "@/components/Navbar";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/AdminSidebar";
 import AdminOrdersContent from "@/components/AdminOrdersContent";
 
 export default function AdminOrdersPage() {
@@ -8,7 +8,6 @@ export default function AdminOrdersPage() {
       <Navbar />
 
       <div className="flex">
-        <Sidebar />
         <AdminOrdersContent />
       </div>
     </div>

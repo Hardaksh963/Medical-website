@@ -1,5 +1,5 @@
 import Navbar from "@/components/Navbar";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/AdminSidebar";
 import AdminInventoryContent from "@/components/AdminInventoryContent";
 
 export default function AdminInventoryPage() {
@@ -8,7 +8,7 @@ export default function AdminInventoryPage() {
       <Navbar />
 
       <div className="flex">
-        <Sidebar />
+        
         <AdminInventoryContent />
       </div>
     </div>

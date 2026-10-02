@@ -1,5 +1,5 @@
 import Navbar from "@/components/Navbar";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/AdminSidebar";
 import AdminOrderDetailsContent from "@/components/AdminOrderDetailsContent";
 
 export default async function AdminOrderDetailsPage({
@@ -14,7 +14,7 @@ export default async function AdminOrderDetailsPage({
       <Navbar />
 
       <div className="flex">
-        <Sidebar />
+        
 
         <AdminOrderDetailsContent orderId={order_id} />
       </div>

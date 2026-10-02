@@ -1,5 +1,5 @@
 import Navbar from "@/components/Navbar";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/AdminSidebar";
 import AdminProductEdit from "@/components/AdminProductEdit";
 
 export default async function EditAdminProductPage({
@@ -14,7 +14,6 @@ export default async function EditAdminProductPage({
       <Navbar />
 
       <div className="flex">
-        <Sidebar />
 
         <AdminProductEdit productId={product_id} />
       </div>

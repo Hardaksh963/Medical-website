@@ -1,5 +1,5 @@
 import Navbar from "@/components/Navbar";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/AdminSidebar";
 import AdminComplaintsContent from "@/components/AdminComplaintsContent";
 
 export default function AdminComplaintsPage() {
@@ -8,7 +8,7 @@ export default function AdminComplaintsPage() {
       <Navbar />
 
       <div className="flex">
-        <Sidebar />
+        
         <AdminComplaintsContent />
       </div>
     </div>

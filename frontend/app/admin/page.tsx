@@ -1,5 +1,5 @@
 import Navbar from "@/components/Navbar";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/AdminSidebar";
 import AdminDashboard from "@/components/AdminDashboard";
 
 export default function AdminPage() {
@@ -8,7 +8,6 @@ export default function AdminPage() {
       <Navbar />
 
       <div className="flex">
-        <Sidebar />
         <AdminDashboard />
       </div>
     </div>
