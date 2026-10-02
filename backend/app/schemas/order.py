@@ -10,7 +10,6 @@ class OrderStatusUpdate(BaseModel):
 
 
 class OrderItemResponse(BaseModel):
-
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
@@ -18,10 +17,10 @@ class OrderItemResponse(BaseModel):
     quantity: int
     unit_price: Decimal
     subtotal: Decimal
+    product_name: str | None = None
 
 
 class OrderResponse(BaseModel):
-
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
@@ -32,3 +31,5 @@ class OrderResponse(BaseModel):
     shipping_cost: Decimal
     total_amount: Decimal
     created_at: datetime
+
+    items: list[OrderItemResponse] = []

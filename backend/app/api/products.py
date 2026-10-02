@@ -16,6 +16,8 @@ from app.schemas.product import (
 )
 from app.schemas.product import ProductDetailResponse
 from app.services.product_service import get_product_details
+from app.api.dependencies import get_current_user
+from app.models.order import Order, OrderItem
 
 
 router = APIRouter(
@@ -180,6 +182,65 @@ def get_admin_product(
         )
 
     return product
+
+@router.get(
+    "/{product_id}/purchased",
+    response_model=ProductDetailResponse,
+)
+def get_purchased_product(
+    product_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    order_item = (
+        db.query(OrderItem)
+        .join(Order, Order.id == OrderItem.order_id)
+        .filter(
+            OrderItem.product_id == product_id,
+            Order.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if not order_item:
+        raise HTTPException(
+            status_code=404,
+            detail="Purchased product not found",
+        )
+
+    result = get_product_details(
+        db=db,
+        product_id=product_id,
+    )
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="Product not found",
+        )
+
+    product = result["product"]
+
+    return {
+        **{
+            column.name: getattr(product, column.name)
+            for column in product.__table__.columns
+        },
+
+        "category": result["category"],
+        "brand": result["brand"],
+        "images": result["images"],
+
+        "rating": {
+            "average": result["average_rating"],
+            "count": result["review_count"],
+        },
+
+        "inventory": {
+            "available": result["stock"] > 0,
+            "quantity": result["stock"],
+        },
+    }
 
 @router.get(
     "/{product_id}",
